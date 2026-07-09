@@ -16,7 +16,7 @@ body{background:#0d0b07}
 .eo{--bg:#0d0b07;--card:#16120d;--gold:#c9a96e;--gdim:#8b7355;--gb:#e8c36a;--parch:#d4c5a9;--dim:#6a5f4f;--bdr:#2e261c;--red:#a3553a;max-width:520px;margin:0 auto;background:var(--bg);color:var(--parch);font-family:'Noto Serif SC',serif;min-height:100vh;line-height:1.85}
 .cz{font-family:'Cinzel',serif;letter-spacing:.15em}.gm{font-family:'EB Garamond',serif}
 .sec{padding:28px 24px;border-bottom:1px solid var(--bdr)}
-.btn{background:0;border:1px solid var(--gold);color:var(--gold);padding:14px 32px;cursor:pointer;font-family:'Noto Serif SC',serif;font-size:14px;letter-spacing:.15em;transition:all .3s;width:100%;position:relative;overflow:hidden}.btn::before{content:'';position:absolute;top:50%;left:50%;width:0;height:0;border-radius:50%;background:rgba(201,169,110,.2);transform:translate(-50%,-50%);transition:width .6s,height .6s}.btn:hover::before{width:300px;height:300px}.btn:hover{background:rgba(201,169,110,.1);border-color:var(--gb);transform:translateY(-1px);box-shadow:0 4px 12px rgba(201,169,110,.2)}.btn-g{background:var(--gold);color:#16120d;font-weight:700}.btn-g:hover{background:var(--gb)}
+.btn{background:0;border:1px solid var(--gold);color:var(--gold);padding:14px 32px;cursor:pointer;font-family:'Noto Serif SC',serif;font-size:14px;letter-spacing:.15em;transition:all .3s;width:100%}.btn:hover{background:rgba(201,169,110,.1)}.btn-g{background:var(--gold);color:#16120d;font-weight:700}.btn-g:hover{background:var(--gb)}
 .opt{display:block;width:100%;text-align:left;background:var(--card);border:1px solid var(--bdr);color:var(--parch);padding:16px 18px;margin-bottom:10px;cursor:pointer;font-family:'Noto Serif SC',serif;font-size:14px;transition:all .25s;line-height:1.6}.opt:hover{border-color:var(--gdim);background:rgba(201,169,110,.05);transform:translateX(3px)}
 .sel{width:100%;background:var(--card);border:1px solid var(--bdr);color:var(--parch);padding:12px 14px;font-family:'Noto Serif SC',serif;font-size:14px;appearance:none;-webkit-appearance:none;cursor:pointer;border-radius:0}.sel:focus{outline:0;border-color:var(--gdim)}.sel option{background:#16120d}
 .inp{width:100%;background:var(--card);border:1px solid var(--bdr);color:var(--parch);padding:12px 14px;font-family:'Noto Serif SC',serif;font-size:14px;border-radius:0}.inp:focus{outline:0;border-color:var(--gdim)}
@@ -308,7 +308,6 @@ function Result({answers,birth}){
   const [mbti,setMbti]=useState(null);
   const [code,setCode]=useState("");
   const [showSample,setShowSample]=useState(REVIEW_MODE);
-  const [showQR,setShowQR]=useState(false);
   const B=useMemo(()=>realBazi(birth.y,birth.m,birth.d,birth.hour,birth.timeKnown)||demoBazi(birth.y,birth.m,birth.d),[birth]);
   const C=CLS[B.hiDim][B.variant];
   const baseN=BASE_N[B.hiDim];
@@ -349,10 +348,6 @@ function Result({answers,birth}){
         <div><span style={{color:'var(--dim)'}}>Loop信号 </span><span style={{color:'var(--red)',fontWeight:700}}>×1</span></div>
       </div>
       <div style={{color:'var(--dim)',fontSize:10,marginTop:8}}>角色由你的上线数据推算 · 非答题决定</div>
-      <div style={{marginTop:20,padding:'12px 20px',background:'rgba(201,169,110,.08)',border:'1px solid var(--bdr)'}}>
-        <div style={{color:'var(--dim)',fontSize:10,marginBottom:4}}>你的存档码</div>
-        <div className="cz" style={{color:'var(--gold)',fontSize:11,letterSpacing:'.05em',wordBreak:'break-all',userSelect:'all'}}>{saveCode}</div>
-      </div>
     </div>
 
     <div className="sec" style={{paddingTop:20,paddingBottom:20}}>
@@ -401,21 +396,12 @@ function Result({answers,birth}){
       </div>
       <div className="sec" style={{textAlign:'center',paddingTop:32,paddingBottom:36}}>
         <div className="cz" style={{color:'var(--gdim)',fontSize:10,letterSpacing:'.3em',marginBottom:14}}>CONTINUE</div>
-        <h3 style={{color:'var(--gold)',fontSize:17,fontWeight:700,marginBottom:6}}>添加微信领取报告</h3>
+        <h3 style={{color:'var(--gold)',fontSize:17,fontWeight:700,marginBottom:6}}>加微信 · 查看更多</h3>
         <p style={{color:'var(--dim)',fontSize:12,marginBottom:16}}>更深的解读和一对一通道，在微信里展开</p>
-        <div style={{cursor:'pointer'}} onClick={()=>setShowQR(!showQR)}>
-          {showQR ? (
-            <img src="qrcode.png" alt="扫码添加引路员微信" style={{width:200,height:200,border:'2px solid var(--gold)',objectFit:'cover',background:'#16120d',padding:8,color:'var(--dim)',fontSize:10,margin:'0 auto'}}/>
-          ) : (
-            <div style={{width:200,height:200,border:'2px dashed var(--gold)',margin:'0 auto',display:'flex',alignItems:'center',justifyContent:'center',flexDirection:'column',background:'rgba(201,169,110,.05)',transition:'all .3s'}}>
-              <div style={{fontSize:40,color:'var(--gold)',marginBottom:8}}>📱</div>
-              <div style={{color:'var(--gold)',fontSize:13}}>点击显示二维码</div>
-            </div>
-          )}
-        </div>
-        <p style={{color:'var(--dim)',fontSize:12,margin:'16px 0 6px'}}>扫码添加引路员并发送你的存档码</p>
-        <div className="cz" style={{display:'inline-block',border:'1px dashed var(--gold)',padding:'10px 16px',color:'var(--gb)',fontSize:11,margin:'6px 0 16px',userSelect:'all',letterSpacing:'.05em',wordBreak:'break-all',maxWidth:'90%'}}>{saveCode}</div>
-        <p style={{color:'var(--dim)',fontSize:12,marginBottom:10}}>输入引路员回复的通行暗号：</p>
+        <img src="qrcode.png" alt="（将引路员微信二维码命名为 qrcode.png 上传到仓库后，此处显示）" style={{width:160,height:160,border:'1px solid var(--gdim)',objectFit:'cover',background:'#16120d',padding:4,color:'var(--dim)',fontSize:10}}/>
+        <p style={{color:'var(--dim)',fontSize:12,margin:'16px 0 6px'}}>① 扫码添加引路员　② 发送你的存档码：</p>
+        <div className="cz" style={{display:'inline-block',border:'1px dashed var(--gold)',padding:'10px 16px',color:'var(--gb)',fontSize:12,margin:'6px 0 16px',userSelect:'all',letterSpacing:'.05em',wordBreak:'break-all',maxWidth:'90%'}}>{saveCode}</div>
+        <p style={{color:'var(--dim)',fontSize:12,marginBottom:10}}>③ 输入引路员回复的通行暗号：</p>
         <div style={{display:'flex',gap:8,maxWidth:300,margin:'0 auto'}}>
           <input className="inp" placeholder="通行暗号" value={code} onChange={e=>setCode(e.target.value)} style={{textAlign:'center'}}/>
           <button className="btn" style={{width:'auto',padding:'12px 20px'}} onClick={()=>{if(code.trim()===UNLOCK_CODE)setUnlocked(true);else alert('暗号不正确，请向引路员确认');}}>进入</button>
@@ -484,48 +470,6 @@ function Result({answers,birth}){
         <div className="gm" style={{color:'var(--gdim)',letterSpacing:12,opacity:.6}}>— ◆ —</div>
         <h3 style={{color:'var(--gb)',fontSize:18,fontWeight:700,margin:'16px 0 10px'}}>深度配置报告</h3>
         <p style={{fontSize:13.5,lineHeight:2,maxWidth:380,margin:'0 auto 20px',textAlign:'left'}}>这份免费报告回答了「你是谁」。深度报告回答的是三个更值钱的问题：<span style={{color:'var(--gb)'}}>你正走到哪一步、什么时候该出手、那个Loop到底从哪来。</span></p>
-
-        {/* 架构图示意 */}
-        <div style={{maxWidth:400,margin:'24px auto',padding:24,background:'rgba(201,169,110,.03)',border:'1px solid var(--bdr)'}}>
-          <div style={{color:'var(--gold)',fontSize:13,fontWeight:700,marginBottom:16,textAlign:'center'}}>深度报告架构</div>
-          <svg viewBox="0 0 300 280" style={{width:'100%',display:'block'}}>
-            <defs>
-              <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth">
-                <path d="M0,0 L0,6 L9,3 z" fill="#8b7355"/>
-              </marker>
-            </defs>
-            {/* 中心：你 */}
-            <circle cx="150" cy="140" r="32" fill="rgba(201,169,110,.15)" stroke="#c9a96e" strokeWidth="2"/>
-            <text x="150" y="145" textAnchor="middle" fill="#e8c36a" fontSize="14" fontWeight="700">你</text>
-            {/* 上：十年版本图谱 */}
-            <rect x="110" y="20" width="80" height="40" fill="rgba(201,169,110,.08)" stroke="#8b7355" strokeWidth="1"/>
-            <text x="150" y="35" textAnchor="middle" fill="#d4c5a9" fontSize="9">十年版本</text>
-            <text x="150" y="48" textAnchor="middle" fill="#d4c5a9" fontSize="9">图谱</text>
-            <line x1="150" y1="60" x2="150" y2="108" stroke="#8b7355" strokeWidth="1.5" markerEnd="url(#arrow)"/>
-            {/* 左：前置剧情 */}
-            <rect x="20" y="120" width="70" height="40" fill="rgba(201,169,110,.08)" stroke="#8b7355" strokeWidth="1"/>
-            <text x="55" y="137" textAnchor="middle" fill="#d4c5a9" fontSize="9">前置剧情</text>
-            <text x="55" y="150" textAnchor="middle" fill="#d4c5a9" fontSize="9">完整解析</text>
-            <line x1="90" y1="140" x2="118" y2="140" stroke="#8b7355" strokeWidth="1.5" markerEnd="url(#arrow)"/>
-            {/* 右：2026赛季 */}
-            <rect x="210" y="120" width="70" height="40" fill="rgba(201,169,110,.08)" stroke="#8b7355" strokeWidth="1"/>
-            <text x="245" y="137" textAnchor="middle" fill="#d4c5a9" fontSize="9">2026赛季</text>
-            <text x="245" y="150" textAnchor="middle" fill="#d4c5a9" fontSize="9">全维度展开</text>
-            <line x1="182" y1="140" x2="210" y2="140" stroke="#8b7355" strokeWidth="1.5" markerEnd="url(#arrow)"/>
-            {/* 下左：Loop溯源 */}
-            <rect x="50" y="220" width="70" height="40" fill="rgba(201,169,110,.08)" stroke="#8b7355" strokeWidth="1"/>
-            <text x="85" y="237" textAnchor="middle" fill="#d4c5a9" fontSize="9">Loop溯源</text>
-            <text x="85" y="250" textAnchor="middle" fill="#d4c5a9" fontSize="9">路径</text>
-            <line x1="130" y1="165" x2="100" y2="220" stroke="#8b7355" strokeWidth="1.5" markerEnd="url(#arrow)"/>
-            {/* 下右：系统补丁 */}
-            <rect x="180" y="220" width="70" height="40" fill="rgba(201,169,110,.08)" stroke="#8b7355" strokeWidth="1"/>
-            <text x="215" y="237" textAnchor="middle" fill="#d4c5a9" fontSize="9">系统补丁</text>
-            <text x="215" y="250" textAnchor="middle" fill="#d4c5a9" fontSize="9">建议</text>
-            <line x1="170" y1="165" x2="200" y2="220" stroke="#8b7355" strokeWidth="1.5" markerEnd="url(#arrow)"/>
-          </svg>
-          <div style={{color:'var(--dim)',fontSize:10,textAlign:'center',marginTop:12}}>五个维度交叉推演，精确到可执行</div>
-        </div>
-
         <div style={{textAlign:'left',maxWidth:380,margin:'0 auto 18px',fontSize:12.5,lineHeight:2}}>
           <p style={{marginBottom:10}}><span style={{color:'var(--gold)'}}>◆ 十年版本图谱</span> — 你正处在大版本的第几年、转折点落在哪一年。提前知道和事后才懂，中间差的可能就是这十年。</p>
           <p style={{marginBottom:10}}><span style={{color:'var(--gold)'}}>◆ 2026赛季全维度展开</span> — 事业的窗口期、关系的剧情点、身体的损耗位，精确到值得记进日历。</p>
@@ -536,7 +480,7 @@ function Result({answers,birth}){
           <p style={{marginBottom:0}}><span style={{color:'var(--gold)'}}>◆ 下一版本预告</span> — 这个版本结束之后，系统准备把你推向哪。</p>
         </div>
         <p style={{color:'var(--dim)',fontSize:12,marginBottom:18}}>每一份由AI按你的存档码单独推演，没有两份相同 · PDF交付 · 引路员私发</p>
-        <button className="btn" style={{maxWidth:300,margin:'0 auto'}} onClick={()=>{if(REVIEW_MODE)setShowSample(s=>!s);else alert('回到微信，向引路员发送「深度报告」即可预约');}}>{REVIEW_MODE?(showSample?'收起样例预览 ↑':'查看深度报告样例（点击预览）'):'在微信里发送「深度报告」预约'}</button>
+        <button className="btn" style={{maxWidth:300,margin:'0 auto'}} onClick={()=>{if(REVIEW_MODE)setShowSample(s=>!s);else alert('回到微信，向引路员发送「深度报告」即可预约');}}>{REVIEW_MODE?(showSample?'收起样例预览 ↑':'在微信里发送「深度报告」预约（点击看样例）'):'在微信里发送「深度报告」预约'}</button>
         {showSample&&(()=>{
           const GEM={金:["白水晶","聚焦与澄清——精准系的雷达需要一块不带杂讯的镜片"],木:["绿幽灵","生长与积聚——生长系的根须需要一块记得住方向的土壤"],水:["海蓝宝","流动与定锚——隐流系的水需要一个不冻结它的容器"],火:["石榴石","燃烧与续航——爆燃系的火需要一块存得住热量的炉膛"],土:["黄水晶","沉稳与流通——磐固系的土需要一条让资源动起来的渠"]}[B.element]||["月光石","通用适配"];
           const styH={color:'var(--gold)',fontSize:15,fontWeight:700,margin:'20px 0 8px'};
