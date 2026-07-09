@@ -41,14 +41,31 @@ const {useState,useEffect,useMemo}=React;
 
 // ════════ 题库：6道（5维度共鸣 + 1状态）════════
 const Q_DATA=[
-  {dim:"输出",q:"全服限时活动：自由创作24小时，造完全服展示。你：",opts:["看看别人的就行","随便搞一个交差","通宵肝，要让全服记住我"]},
-  {dim:"独立",q:"新副本，零攻略，没人走过。你倾向：",opts:["找个老玩家带我","先搜搜前人经验","自己摸索，慢点就慢点"]},
-  {dim:"秩序",q:"连续三个高难关卡没过，队友都说放弃了。你：",opts:["也觉得太难了，换方向","休息一下改天再试","越难越上头，今天必须过"]},
-  {dim:"资源",q:"赌场副本：押全部身家赢了翻三倍，输了清零。你：",opts:["不赌，每一分都要确定的","押一小部分试试水","All in，能有几回搏"]},
-  {dim:"认知",q:"有份隐藏BOSS弱点的攻略，但只剩残页。你：",opts:["不看了，碰到随机应变","把残页研究透了再去","读一半就自己推演出完整版"]},
-  {dim:"状态",q:"最近这段时间，你的状态更接近：",opts:["满电，到处想搞事","正常运行，不好不坏","低电量，只想躺着","卡顿——想动，但动不了"]},
+  // 输出维度 (3题) - 创造力/表达欲
+  {dim:"输出",q:"全服限时活动：自由创作24小时，造完全服展示。你：",opts:["看看别人的就行","随便搞一个交差","认真做但不卷","尽力做到前排","通宵肝，要让全服记住我"]},
+  {dim:"输出",q:"空白地图让你自由建造。你的第一反应：",opts:["不知道做什么","照着见过的建","想做但没思路","已经有几个想法","脑子炸出十个方案"]},
+  {dim:"输出",q:"队友形容你：",opts:["按部就班，稳","想法还行","有时候有点子","经常提新思路","想法多到做不完"]},
+
+  // 独立维度 (3题) - 自主性/单干能力
+  {dim:"独立",q:"新副本，零攻略，没人走过。你倾向：",opts:["找个老玩家带我","组队一起摸索","搜搜有无经验","自己摸索慢慢来","必须第一个通关"]},
+  {dim:"独立",q:"遇到卡关，你的第一选择：",opts:["公会频道求助","找朋友帮忙","自己再试几次","查资料自己研究","死磕到通为止"]},
+  {dim:"独立",q:"团队副本中，你更习惯：",opts:["听指挥就好","配合队友节奏","负责自己的部分","主导部分策略","想自己solo"]},
+
+  // 秩序维度 (3题) - 纪律性/计划性
+  {dim:"秩序",q:"连续三个高难关卡没过，队友都说放弃了。你：",opts:["也觉得太难换方向","算了不值得","休息改天再试","调整策略继续","越难越上头必须过"]},
+  {dim:"秩序",q:"你的背包管理：",opts:["从不整理乱糟糟","用时找不到","大致分类","定期整理归类","强迫症级分类"]},
+  {dim:"秩序",q:"每日任务还剩1小时刷新，你还没做：",opts:["无所谓不差这点","偶尔会赶一下","尽量做完","一定要做完","提前几小时做完了"]},
+
+  // 资源维度 (3题) - 合作性/风险偏好
+  {dim:"资源",q:"赌场副本：押全部身家赢了翻三倍，输了清零。你：",opts:["不赌要确定的","押一小部分试水","看赔率再决定","押大半试试","All in能有几回搏"]},
+  {dim:"资源",q:"萌新向你求助（但你在忙）：",opts:["直接无视","说忙没空","简单指一下","抽空教一下","放下手里的事去帮"]},
+  {dim:"资源",q:"拍卖行捡漏机会 vs 帮公会打本冲榜：",opts:["必须捡漏","看哪个收益高","先捡漏再去","先帮公会","肯定帮公会"]},
+
+  // 认知维度 (3题) - 反思性/敏感度
+  {dim:"认知",q:"有份隐藏BOSS弱点的攻略，但只剩残页。你：",opts:["不看了随机应变","看一眼算了","认真研究残页","研究透再去","读一半推演完整版"]},
+  {dim:"认知",q:"翻车后，你会：",opts:["立刻忘掉","稍微想想","复盘找原因","反复回想细节","陷入自我怀疑"]},
+  {dim:"认知",q:"队友指出你的失误：",opts:["完全不在意","听听就算了","会认真改进","耿耿于怀","内疚很久"]},
 ];
-const STATE_MAP=["过载状态","稳定运行","节能模式","卡关状态"];
 // 解锁码：引路员回复给用户的暗号。上线后可定期更换（只改这一行）
 const UNLOCK_CODE="破壳";
 // 审阅模式：true = 跳过闸门直接展示全部内容（方便review）。正式上线前改为 false
@@ -156,65 +173,81 @@ function realBazi(y,m,d,hour,timeKnown){
   try{
     if(typeof Solar==="undefined")return null;
     const solar=Solar.fromYmdHms(y,m,d,timeKnown?hour:12,0,0);
-    const ec=solar.getLunar().getEightChar();
+    const lunar=solar.getLunar();
+    const ec=lunar.getEightChar();
     const dayGan=ec.getDayGan();
     const elem=GAN_INFO[dayGan][0];
-    const yearGan=ec.getYearGan(),monthGan=ec.getMonthGan();
+
+    // ── 改进版：更准确的身强身弱判断 ──
+    const lunarMonth=lunar.getMonth();
+    const seasonWang={1:'水',2:'水',3:'木',4:'木',5:'木',6:'火',7:'火',8:'火',9:'金',10:'金',11:'金',12:'水'};
+    const monthWang=seasonWang[lunarMonth];
+    const deLing=(elem===monthWang)||(SHENG[monthWang]===elem);
+
+    const dayZhiHidden=ec.getDayHideGan()||[];
+    const monthZhiHidden=ec.getMonthHideGan()||[];
+    const timeZhiHidden=timeKnown?(ec.getTimeHideGan()||[]):[];
+    let genQi=0;
+    [dayZhiHidden,monthZhiHidden,timeZhiHidden].forEach(hidden=>{
+      hidden.forEach(g=>{
+        const ss=shiShenOf(dayGan,g);
+        if(['比肩','劫财'].includes(ss))genQi+=2;
+        if(['正印','偏印'].includes(ss))genQi+=1;
+      });
+    });
+
+    const yearGan=ec.getYearGan();
+    const monthGan=ec.getMonthGan();
     const timeGan=timeKnown?ec.getTimeGan():null;
-    const mh=ec.getMonthHideGan()||[]; // 月支藏干 [本气,中气,余气]
+    let bangFu=0;
+    [yearGan,monthGan,timeGan].forEach(g=>{
+      if(!g)return;
+      const ss=shiShenOf(dayGan,g);
+      if(['比肩','劫财'].includes(ss))bangFu+=2;
+      if(['正印','偏印'].includes(ss))bangFu+=1;
+    });
 
-    // ── 1. 格局判定：月令藏干中、透出天干者立格（本气优先），比劫不立格 ──
-    const visible=[yearGan,monthGan,timeGan].filter(Boolean);
-    let gejuGan=null;
-    for(const h of mh){
-      const ss=shiShenOf(dayGan,h);
-      if(ss==="比肩"||ss==="劫财")continue;
-      if(visible.indexOf(h)>=0){gejuGan=h;break;}
-    }
-    if(!gejuGan){ // 不透则以月令本气立格（本气为比劫时顺延中气/余气）
-      for(const h of mh){const ss=shiShenOf(dayGan,h);if(ss!=="比肩"&&ss!=="劫财"){gejuGan=h;break;}}
-    }
+    let score=0;
+    if(deLing)score+=50;
+    score+=Math.min(genQi*5,30);
+    score+=Math.min(bangFu*5,20);
+    const strong=score>=60;
 
-    // ── 2. 加权分布（月令为纲：月支本气2.0 远高于其他位置）──
+    // ── 五维分布 ──
     const sums={};DIM_ORDER.forEach(g=>sums[g]=0);
     const indiv={};
     const addG=(g,w)=>{if(!g)return;const ss=shiShenOf(dayGan,g);const grp=SS_GROUP[ss];if(!grp)return;sums[grp]+=w;indiv[ss]=(indiv[ss]||0)+w;};
-    addG(yearGan,0.8);addG(monthGan,1.2);if(timeGan)addG(timeGan,0.8);
+    const mh=ec.getMonthHideGan()||[];
+    addG(yearGan,0.8);addG(monthGan,1.6);if(timeGan)addG(timeGan,0.8);
     const addHide=(arr,ws)=>{(arr||[]).forEach((h,i)=>addG(h,ws[i]||0.1));};
     addHide(mh,[2.0,0.6,0.3]);
     addHide(ec.getYearHideGan(),[0.6,0.3,0.15]);
     addHide(ec.getDayHideGan(),[0.6,0.3,0.15]);
     if(timeKnown)addHide(ec.getTimeHideGan(),[0.6,0.3,0.15]);
 
-    // ── 3. 强弱判定 → 用神定职业 ──
-    // 旧版直接以格局（月令当令之神）定职业，会把"印旺身强"误判为贤者。
-    // 正确逻辑：先判身强身弱——
-    //   扶我的力量 = 印(认知) + 比劫(独立)；泄耗克我 = 食伤(输出) + 财(资源) + 官杀(秩序)
-    //   身强 → 能量需要出口 → 用神取食伤/财/官杀中最强者 → 角色 = 能量的去处
-    //   身弱 → 需要扶持 → 用神取印/比劫中最强者 → 角色 = 力量的来源
-    const support=sums["认知"]+sums["独立"];
-    const drain=sums["输出"]+sums["资源"]+sums["秩序"];
-    const strong=support>=drain;
     let hi;
     if(strong){
       hi=["输出","资源","秩序"].reduce((a,b)=>sums[a]>=sums[b]?a:b);
     }else{
       hi=["认知","独立"].reduce((a,b)=>sums[a]>=sums[b]?a:b);
     }
-    // 正/偏：所选用神组内，具体十神谁更强
-    let p=0,z=0;Object.keys(indiv).forEach(ss=>{if(SS_GROUP[ss]===hi){if(SS_PIAN.has(ss))p+=indiv[ss];else z+=indiv[ss];}});
-    const vt=p>=z?"偏":"正";
-    // 格局仅作元数据保留（月令立格，比劫不立格）
-    let geju=gejuGan?(shiShenOf(dayGan,gejuGan)+"格"):"建禄/羊刃";
 
-    // ── 4. 雷达 & Loop ──
+    let p=0,z=0;
+    Object.keys(indiv).forEach(ss=>{
+      if(SS_GROUP[ss]===hi){
+        if(SS_PIAN.has(ss))p+=indiv[ss];else z+=indiv[ss];
+      }
+    });
+    const vt=p>=z?"偏":"正";
+
     const maxS=Math.max(...DIM_ORDER.map(g=>sums[g]),0.01);
     const pct={};const lv={};
     const sorted=[...DIM_ORDER].sort((a,b)=>sums[b]-sums[a]);
     sorted.forEach((g,i)=>{lv[g]=i<2?"H":i<3?"M":"L";});
     DIM_ORDER.forEach(g=>{pct[g]=Math.round(28+(sums[g]/maxS)*67);});
     const lo=DIM_ORDER.reduce((a,b)=>sums[a]<=sums[b]?a:b);
-    return {prefix:ELEM_PREFIX[elem],element:elem,dayGan,geju,hiDim:hi,loDim:lo,variant:vt,pct,lv,demo:false};
+
+    return {prefix:ELEM_PREFIX[elem],element:elem,dayGan,strong,hiDim:hi,loDim:lo,variant:vt,pct,lv,sums,demo:false};
   }catch(e){return null;}
 }
 // 排盘库加载失败时的演示模式
@@ -228,7 +261,7 @@ function demoBazi(y,m,d){
   const pct={};const lv={};const sorted=[...DIM_ORDER].sort((a,b)=>sums[b]-sums[a]);
   sorted.forEach((g,i)=>{lv[g]=i<2?"H":i<3?"M":"L";});
   DIM_ORDER.forEach(g=>{pct[g]=Math.round(28+(sums[g]/maxS)*67);});
-  return {prefix:ELEM_PREFIX[elem],element:elem,dayGan:"演",hiDim:hi,loDim:lo,variant:rnd()>0.5?"偏":"正",pct,lv,demo:true};
+  return {prefix:ELEM_PREFIX[elem],element:elem,dayGan:"演",hiDim:hi,loDim:lo,variant:rnd()>0.5?"偏":"正",pct,lv,sums,strong:rnd()>0.5,demo:true};
 }
 
 // ════════ UI 组件 ════════
@@ -311,27 +344,99 @@ function Result({answers,birth}){
   const [mbti,setMbti]=useState(null);
   const [code,setCode]=useState("");
   const [showQR,setShowQR]=useState(false);
+
+  // ── 综合计算：答题70% + 八字20% ──
   const B=useMemo(()=>realBazi(birth.y,birth.m,birth.d,birth.hour,birth.timeKnown)||demoBazi(birth.y,birth.m,birth.d),[birth]);
-  const C=CLS[B.hiDim][B.variant];
-  const baseN=BASE_N[B.hiDim];
+
+  // 1. 答题得分
+  const quizScores=useMemo(()=>{
+    const scores={};
+    DIM_ORDER.forEach(d=>scores[d]=0);
+    answers.forEach((a,i)=>{
+      const q=Q_DATA[i];
+      if(!q||!q.dim)return;
+      const score=a*(100/(q.opts.length-1)); // 归一化到0-100
+      scores[q.dim]+=score;
+    });
+    // 每个维度3题，平均分
+    DIM_ORDER.forEach(d=>{
+      const count=Q_DATA.filter(q=>q.dim===d).length;
+      if(count>0)scores[d]=scores[d]/count;
+    });
+    return scores;
+  },[answers]);
+
+  // 2. 八字得分
+  const baziScores=useMemo(()=>{
+    const scores={};
+    if(!B.sums){
+      DIM_ORDER.forEach(d=>scores[d]=50);
+      return scores;
+    }
+    const maxS=Math.max(...DIM_ORDER.map(d=>B.sums[d]||0),0.01);
+    DIM_ORDER.forEach(d=>{
+      scores[d]=((B.sums[d]||0)/maxS)*100;
+    });
+    return scores;
+  },[B]);
+
+  // 3. 综合得分
+  const finalScores=useMemo(()=>{
+    const scores={};
+    DIM_ORDER.forEach(d=>{
+      scores[d]=quizScores[d]*0.7+(baziScores[d]||50)*0.2;
+    });
+    return scores;
+  },[quizScores,baziScores]);
+
+  // 4. 确定主维度和低维度
+  const hiDim=useMemo(()=>DIM_ORDER.reduce((a,b)=>finalScores[a]>=finalScores[b]?a:b),[finalScores]);
+  const loDim=useMemo(()=>DIM_ORDER.reduce((a,b)=>finalScores[a]<=finalScores[b]?a:b),[finalScores]);
+
+  // 正偏：八字身强=偏，身弱=正
+  const variant=B.strong?"偏":"正";
+
+  const C=CLS[hiDim][variant];
+  const baseN=BASE_N[hiDim];
   const fullName=`${B.prefix} · ${C.name}`;
   const SE=SEASON[baseN];
-  const L=LOOP_MAP[B.loDim];
+  const L=LOOP_MAP[loDim];
   const mx=MBTI_X[baseN]||{};
-  const state=STATE_MAP[answers[5]]||"稳定运行";
-  const saveCode=`EO-${birth.y}${String(birth.m).padStart(2,'0')}${String(birth.d).padStart(2,'0')}-${birth.timeKnown?('H'+birth.hour):'H?'}-${B.prefix}·${C.name}-${state}-Loop${B.loDim}`;
-  // 共鸣回响：找答题与配置吻合的维度
+  const saveCode=`EO-${birth.y}${String(birth.m).padStart(2,'0')}${String(birth.d).padStart(2,'0')}-${birth.timeKnown?('H'+birth.hour):'H?'}-${fullName}-Loop${loDim}`;
+
+  // 重新计算雷达图和等级
+  const pct=useMemo(()=>{
+    const maxS=Math.max(...DIM_ORDER.map(d=>finalScores[d]),0.01);
+    const p={};
+    DIM_ORDER.forEach(d=>{p[d]=Math.round(28+(finalScores[d]/maxS)*67);});
+    return p;
+  },[finalScores]);
+
+  const lv=useMemo(()=>{
+    const sorted=[...DIM_ORDER].sort((a,b)=>finalScores[b]-finalScores[a]);
+    const l={};
+    sorted.forEach((g,i)=>{l[g]=i<2?"H":i<3?"M":"L";});
+    return l;
+  },[finalScores]);
+
+  // 共鸣回响
   const echoes=useMemo(()=>{
     const out=[];
-    for(let i=0;i<5;i++){
-      const q=Q_DATA[i];const a=answers[i];const lv=B.lv[q.dim];
+    answers.forEach((a,i)=>{
+      const q=Q_DATA[i];
+      if(!q)return;
       const lastIdx=q.opts.length-1;
-      if(lv==="H"&&a===lastIdx)out.push(ECHO[q.dim].H.replace("{opt}",q.opts[a]));
-      else if(lv==="L"&&a===0)out.push(ECHO[q.dim].L.replace("{opt}",q.opts[a]));
-      if(out.length>=2)break;
-    }
-    return out;
-  },[answers,B]);
+      if(q.dim===hiDim&&a>=lastIdx-1){
+        out.push(`你在「${q.q.substring(0,12)}...」选了「${q.opts[a]}」——正好对应你的${hiDim}高配。`);
+      }
+      if(q.dim===loDim&&a<=1){
+        out.push(`你在「${q.q.substring(0,12)}...」选了「${q.opts[a]}」——正好对应你的${loDim}低配。`);
+      }
+      if(out.length>=2)return;
+    });
+    return out.slice(0,2);
+  },[answers,hiDim,loDim]);
+
   const strength=useMemo(()=>65+Math.floor(Math.random()*25),[]);
   const Lk=({t})=><div style={{display:'flex',alignItems:'center',gap:8,padding:'12px 0',color:'var(--gdim)',fontSize:13,borderBottom:'1px solid var(--bdr)'}}>🔒 <span>{t}</span><span style={{marginLeft:'auto',fontSize:11,color:'var(--dim)'}}>加微信解锁</span></div>;
 
@@ -358,7 +463,7 @@ function Result({answers,birth}){
     </div>
 
     <div className="sec" style={{paddingTop:20,paddingBottom:20}}>
-      <Radar pct={B.pct}/>
+      <Radar pct={pct}/>
       <p style={{color:'var(--dim)',fontSize:11,textAlign:'center',marginTop:10}}>你的五组模块出厂配置 · 最弱的那条线里，藏着你的Loop</p>
     </div>
 
@@ -386,7 +491,7 @@ function Result({answers,birth}){
       <div style={{color:'var(--gb)',fontSize:26,fontWeight:900,marginBottom:4}}>{C.name}</div>
       <div className="gm" style={{fontSize:12,color:'var(--gdim)',marginBottom:6}}>{state}</div>
       <div className="gm" style={{fontSize:11,color:'var(--gdim)',marginBottom:16}}>"{C.tag}"</div>
-      <div style={{display:'flex',justifyContent:'center',gap:18,fontSize:11}}>{DIM_ORDER.map(d=><div key={d}><div className="cz" style={{color:'var(--dim)',fontSize:8}}>{DIM_EN[d]}</div><div style={{color:'var(--gold)',fontWeight:700}}>{B.pct[d]}</div></div>)}</div>
+      <div style={{display:'flex',justifyContent:'center',gap:18,fontSize:11}}>{DIM_ORDER.map(d=><div key={d}><div className="cz" style={{color:'var(--dim)',fontSize:8}}>{DIM_EN[d]}</div><div style={{color:'var(--gold)',fontWeight:700}}>{pct[d]}</div></div>)}</div>
       <div style={{color:'var(--dim)',fontSize:9,marginTop:14}}>主模块 {B.hiDim} · Loop信号 ×1</div>
     </div><div style={{textAlign:'center',marginTop:10,color:'var(--dim)',fontSize:11}}>↑ 可直接保存分享</div></div>
 
@@ -435,10 +540,10 @@ function Result({answers,birth}){
         {DIM_ORDER.map(d=><div key={d} style={{marginBottom:18}}>
           <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
             <div style={{display:'flex',alignItems:'center',gap:8}}><span className="cz" style={{color:'var(--dim)',fontSize:9}}>{DIM_EN[d]}</span><span style={{fontSize:13,fontWeight:600}}>{d}</span></div>
-            <div style={{display:'flex',alignItems:'center',gap:6}}><span className={"lv lv-"+B.lv[d]}>{B.lv[d]}</span><span style={{color:'var(--dim)',fontSize:11}}>{B.pct[d]}</span></div>
+            <div style={{display:'flex',alignItems:'center',gap:6}}><span className={"lv lv-"+lv[d]}>{lv[d]}</span><span style={{color:'var(--dim)',fontSize:11}}>{pct[d]}</span></div>
           </div>
-          <div className="bar-t"><div className="bar-f" style={{width:B.pct[d]+"%",background:B.lv[d]==='H'?'var(--gold)':B.lv[d]==='M'?'var(--gdim)':'var(--red)'}}/></div>
-          <div style={{color:'var(--dim)',fontSize:11.5,marginTop:5,lineHeight:1.8}}>{DIM_DETAIL[d][B.lv[d]]}</div>
+          <div className="bar-t"><div className="bar-f" style={{width:pct[d]+"%",background:lv[d]==='H'?'var(--gold)':lv[d]==='M'?'var(--gdim)':'var(--red)'}}/></div>
+          <div style={{color:'var(--dim)',fontSize:11.5,marginTop:5,lineHeight:1.8}}>{DIM_DETAIL[d][lv[d]]}</div>
         </div>)}
         <p style={{color:'var(--dim)',fontSize:10,marginTop:4}}>注：以上为出厂配置读数，由上线数据推算，非答题得分。</p>
       </div>
