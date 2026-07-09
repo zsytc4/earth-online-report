@@ -23,6 +23,9 @@ body{background:#0d0b07}
 .bar-t{width:100%;height:4px;background:#251f17;border-radius:2px;overflow:hidden;margin-top:4px}.bar-f{height:100%;border-radius:2px;transition:width .6s}
 .fade{animation:fd .5s ease forwards}@keyframes fd{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
 .pulse{animation:pl 1.6s ease-in-out infinite}@keyframes pl{0%,100%{opacity:.4}50%{opacity:1}}
+.float{animation:flt 3s ease-in-out infinite}@keyframes flt{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
+.glow{animation:glw 2s ease-in-out infinite}@keyframes glw{0%,100%{opacity:.6}50%{opacity:1}}
+.slide-in{animation:sli .8s ease-out forwards}@keyframes sli{from{opacity:0;transform:translateX(-20px)}to{opacity:1;transform:translateX(0)}}
 .sc{background:linear-gradient(165deg,#1a160f,#0d0b07 50%,#1a1510);border:1px solid var(--gdim);padding:30px 22px;text-align:center;position:relative}.sc::before{content:'';position:absolute;top:8px;left:8px;width:36px;height:36px;border:1px solid var(--gdim);border-width:1px 0 0 1px}.sc::after{content:'';position:absolute;bottom:8px;right:8px;width:36px;height:36px;border:1px solid var(--gdim);border-width:0 1px 1px 0}
 .mg{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin:18px 0}
 .mb{background:var(--card);border:1px solid var(--bdr);color:var(--dim);padding:8px 4px;font-family:'Cinzel',serif;font-size:11px;cursor:pointer;transition:all .3s}.mb:hover{border-color:var(--gdim);color:var(--parch)}.mb.act{border-color:var(--gold);color:var(--gold);background:rgba(201,169,110,.08)}
@@ -307,7 +310,6 @@ function Result({answers,birth}){
   const [unlocked,setUnlocked]=useState(REVIEW_MODE);
   const [mbti,setMbti]=useState(null);
   const [code,setCode]=useState("");
-  const [showSample,setShowSample]=useState(REVIEW_MODE);
   const [showQR,setShowQR]=useState(false);
   const B=useMemo(()=>realBazi(birth.y,birth.m,birth.d,birth.hour,birth.timeKnown)||demoBazi(birth.y,birth.m,birth.d),[birth]);
   const C=CLS[B.hiDim][B.variant];
@@ -399,7 +401,7 @@ function Result({answers,birth}){
         <Lk t="🌒 前置剧情信号"/>
         <Lk t="MBTI × 地球Online 交叉解读"/>
       </div>
-      <div className="sec" style={{textAlign:'center',paddingTop:32,paddingBottom:36}}>
+      <div id="wechat-section" className="sec" style={{textAlign:'center',paddingTop:32,paddingBottom:36}}>
         <div className="cz" style={{color:'var(--gdim)',fontSize:10,letterSpacing:'.3em',marginBottom:14}}>CONTINUE</div>
         <h3 style={{color:'var(--gold)',fontSize:17,fontWeight:700,marginBottom:6}}>添加微信领取报告</h3>
         <p style={{color:'var(--dim)',fontSize:12,marginBottom:16}}>更深的解读和一对一通道，在微信里展开</p>
@@ -480,14 +482,18 @@ function Result({answers,birth}){
         </div>;})()}
       </div>
 
-      <div className="sec" style={{textAlign:'center'}}>
-        <div className="gm" style={{color:'var(--gdim)',letterSpacing:12,opacity:.6}}>— ◆ —</div>
-        <h3 style={{color:'var(--gb)',fontSize:18,fontWeight:700,margin:'16px 0 10px'}}>深度配置报告</h3>
-        <p style={{fontSize:13.5,lineHeight:2,maxWidth:380,margin:'0 auto 20px',textAlign:'left'}}>这份免费报告回答了「你是谁」。深度报告回答的是三个更值钱的问题：<span style={{color:'var(--gb)'}}>你正走到哪一步、什么时候该出手、那个Loop到底从哪来。</span></p>
+      <div className="sec" style={{textAlign:'center',background:'linear-gradient(180deg, rgba(0,0,0,0) 0%, rgba(201,169,110,.02) 50%, rgba(0,0,0,0) 100%)'}}>
+        <div className="gm float" style={{color:'var(--gdim)',letterSpacing:12,opacity:.6,fontSize:16}}>◆</div>
+        <h3 className="slide-in" style={{color:'var(--gb)',fontSize:20,fontWeight:900,margin:'16px 0 10px',letterSpacing:'.08em'}}>深度配置报告</h3>
+        <p className="slide-in" style={{fontSize:14,lineHeight:2,maxWidth:400,margin:'0 auto 24px',textAlign:'left',color:'var(--parch)'}}>当前报告回答了「你是谁」。<br/>深度报告回答的是三个更值钱的问题：<span style={{color:'var(--gb)',fontWeight:600}}>你正走到哪一步、什么时候该出手、那个Loop到底从哪来。</span></p>
+
+        {/* 装饰线 */}
+        <div style={{width:80,height:1,background:'linear-gradient(90deg, transparent, var(--gold), transparent)',margin:'20px auto'}}></div>
 
         {/* 架构图示意 */}
-        <div style={{maxWidth:400,margin:'24px auto',padding:24,background:'rgba(201,169,110,.03)',border:'1px solid var(--bdr)'}}>
-          <div style={{color:'var(--gold)',fontSize:13,fontWeight:700,marginBottom:16,textAlign:'center'}}>深度报告架构</div>
+        <div className="fade" style={{maxWidth:400,margin:'24px auto',padding:28,background:'rgba(201,169,110,.04)',border:'1px solid var(--bdr)',position:'relative',overflow:'hidden'}}>
+          <div style={{position:'absolute',top:-20,right:-20,width:100,height:100,background:'radial-gradient(circle, rgba(201,169,110,.1), transparent)',pointerEvents:'none'}}></div>
+          <div className="glow" style={{color:'var(--gold)',fontSize:13,fontWeight:700,marginBottom:20,textAlign:'center',letterSpacing:'.15em'}}>· 报告架构 ·</div>
           <svg viewBox="0 0 300 280" style={{width:'100%',display:'block'}}>
             <defs>
               <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth">
@@ -523,57 +529,33 @@ function Result({answers,birth}){
             <text x="215" y="250" textAnchor="middle" fill="#d4c5a9" fontSize="9">建议</text>
             <line x1="170" y1="165" x2="200" y2="220" stroke="#8b7355" strokeWidth="1.5" markerEnd="url(#arrow)"/>
           </svg>
-          <div style={{color:'var(--dim)',fontSize:10,textAlign:'center',marginTop:12}}>五个维度交叉推演，精确到可执行</div>
+          <div style={{color:'var(--dim)',fontSize:10,textAlign:'center',marginTop:14,letterSpacing:'.1em'}}>五维交叉推演 · 精确到可执行的时间节点</div>
         </div>
 
-        <div style={{textAlign:'left',maxWidth:380,margin:'0 auto 18px',fontSize:12.5,lineHeight:2}}>
-          <p style={{marginBottom:10}}><span style={{color:'var(--gold)'}}>◆ 十年版本图谱</span> — 你正处在大版本的第几年、转折点落在哪一年。提前知道和事后才懂，中间差的可能就是这十年。</p>
-          <p style={{marginBottom:10}}><span style={{color:'var(--gold)'}}>◆ 2026赛季全维度展开</span> — 事业的窗口期、关系的剧情点、身体的损耗位，精确到值得记进日历。</p>
-          <p style={{marginBottom:10}}><span style={{color:'var(--gold)'}}>◆ 前置剧情完整解析</span> — 那个比你还老的执念：从哪来、抓着什么、怎么放。</p>
-          <p style={{marginBottom:10}}><span style={{color:'var(--gold)'}}>◆ Loop溯源路径</span> — 不只告诉你loop在哪，告诉你它的安装时间和卸载顺序。</p>
-          <p style={{marginBottom:10}}><span style={{color:'var(--gold)'}}>◆ 系统补丁建议</span> — 不是「多穿红色」，是具体到环境、作息、方位的可执行参数。</p>
-          <p style={{marginBottom:10}}><span style={{color:'var(--gold)'}}>◆ 可选装备清单</span> — 按你的配置匹配的实体装备，每一件带适配理由。</p>
-          <p style={{marginBottom:0}}><span style={{color:'var(--gold)'}}>◆ 下一版本预告</span> — 这个版本结束之后，系统准备把你推向哪。</p>
+        {/* 装饰元素 */}
+        <div style={{display:'flex',justifyContent:'center',gap:12,margin:'28px 0 24px'}}>
+          <div className="pulse" style={{width:6,height:6,background:'var(--gold)',borderRadius:'50%'}}></div>
+          <div className="pulse" style={{width:6,height:6,background:'var(--gold)',borderRadius:'50%',animationDelay:'.3s'}}></div>
+          <div className="pulse" style={{width:6,height:6,background:'var(--gold)',borderRadius:'50%',animationDelay:'.6s'}}></div>
         </div>
-        <p style={{color:'var(--dim)',fontSize:12,marginBottom:18}}>每一份由AI按你的存档码单独推演，没有两份相同 · PDF交付 · 引路员私发</p>
-        <button className="btn" style={{maxWidth:300,margin:'0 auto'}} onClick={()=>{if(REVIEW_MODE)setShowSample(s=>!s);else alert('回到微信，向引路员发送「深度报告」即可预约');}}>{REVIEW_MODE?(showSample?'收起样例预览 ↑':'查看深度报告样例（点击预览）'):'在微信里发送「深度报告」预约'}</button>
-        {showSample&&(()=>{
-          const GEM={金:["白水晶","聚焦与澄清——精准系的雷达需要一块不带杂讯的镜片"],木:["绿幽灵","生长与积聚——生长系的根须需要一块记得住方向的土壤"],水:["海蓝宝","流动与定锚——隐流系的水需要一个不冻结它的容器"],火:["石榴石","燃烧与续航——爆燃系的火需要一块存得住热量的炉膛"],土:["黄水晶","沉稳与流通——磐固系的土需要一条让资源动起来的渠"]}[B.element]||["月光石","通用适配"];
-          const styH={color:'var(--gold)',fontSize:15,fontWeight:700,margin:'20px 0 8px'};
-          const styP={fontSize:12.5,lineHeight:2.1,marginBottom:8};
-          const styS={color:'var(--gb)'};
-          return <div className="fade" style={{textAlign:'left',marginTop:24,padding:'22px 20px',border:'1px solid var(--gdim)',background:'rgba(0,0,0,.2)'}}>
-          <p style={{color:'var(--red)',fontSize:10,letterSpacing:'.1em',marginBottom:16,lineHeight:1.8}}>▲ 审阅模式 · 完整样例。正式版由AI按用户存档码逐份推演生成，以下展示成品的完整结构与文风（数据为示意）。</p>
 
-          <h4 style={styH}>一 · 十年版本图谱</h4>
-          <p style={styP}>你当前运行在一个以「{SE.theme}」为主题的大版本第6年——已过中点，进入这个版本真正兑现的下半场。这个版本从2020年前后启动，系统在前半段反复给你安排同一类事件：搭好的东西被推翻、准备好的窗口临时关闭。回头看你会发现那不是刁难，是系统在反复测试你的一个参数：<span style={styS}>没有外部确认的时候，你还动不动。</span></p>
-          <p style={styP}>按推演，这个版本的关键转折点落在<span style={styS}>2027年春夏之交</span>——在那之前完成的积累会在那之后集中结算，在那之前回避的问题也一样。下一个大版本将于2030年前后启动，主题会从「{SE.theme}」切换到「兑现」，届时你现在觉得「还早」的事情会突然变成「必须现在」。</p>
+        <div style={{textAlign:'left',maxWidth:400,margin:'0 auto 24px',fontSize:13,lineHeight:2.2}}>
+          <div className="slide-in" style={{marginBottom:14,paddingLeft:16,borderLeft:'2px solid var(--gold)',animationDelay:'.1s'}}><span style={{color:'var(--gold)',fontWeight:600}}>◆ 十年版本图谱</span> — 你现在跑到大版本的第几年、转折点什么时候到。提前看到和事后才懂，差的可能就是这十年。</div>
+          <div className="slide-in" style={{marginBottom:14,paddingLeft:16,borderLeft:'2px solid var(--gold)',animationDelay:'.2s'}}><span style={{color:'var(--gold)',fontWeight:600}}>◆ 2026赛季全维度展开</span> — 事业窗口期在哪几个月、关系剧情点会在什么时候爆发、身体哪个位置要注意。</div>
+          <div className="slide-in" style={{marginBottom:14,paddingLeft:16,borderLeft:'2px solid var(--gold)',animationDelay:'.3s'}}><span style={{color:'var(--gold)',fontWeight:600}}>◆ 前置剧情完整解析</span> — 那个比你还老的执念从哪来、现在抓着什么、要怎么放下。</div>
+          <div className="slide-in" style={{marginBottom:14,paddingLeft:16,borderLeft:'2px solid var(--gold)',animationDelay:'.4s'}}><span style={{color:'var(--gold)',fontWeight:600}}>◆ Loop溯源路径</span> — 不只告诉你loop在哪，还告诉你它是什么时候装上的、该按什么顺序卸载。</div>
+          <div className="slide-in" style={{marginBottom:14,paddingLeft:16,borderLeft:'2px solid var(--gold)',animationDelay:'.5s'}}><span style={{color:'var(--gold)',fontWeight:600}}>◆ 系统补丁建议</span> — 工作环境怎么调、作息怎么排、长期待的空间朝哪个方向，都是能直接执行的参数。</div>
+          <div className="slide-in" style={{marginBottom:14,paddingLeft:16,borderLeft:'2px solid var(--gold)',animationDelay:'.6s'}}><span style={{color:'var(--gold)',fontWeight:600}}>◆ 可选装备清单</span> — 按你的配置匹配实体装备，每件都写清楚为什么适合你。</div>
+          <div className="slide-in" style={{marginBottom:0,paddingLeft:16,borderLeft:'2px solid var(--gold)',animationDelay:'.7s'}}><span style={{color:'var(--gold)',fontWeight:600}}>◆ 下一版本预告</span> — 这个版本结束之后，系统准备把你推向哪。</div>
+        </div>
 
-          <h4 style={styH}>二 · 2026赛季全维度展开</h4>
-          <p style={styP}><span style={styS}>▸ 事业位：</span>窗口期集中在4月与9-10月两段。4月的机会来自旧关系的回流——一个两年以上没联系的人会带着一个具体的合作出现；9-10月的机会需要你主动出牌，特征是「规模看起来小于你的预期，但通向的房间大于你的想象」。6-7月是低信号期，适合建设不适合出击。</p>
-          <p style={styP}><span style={styS}>▸ 关系位：</span>本赛季的关系剧情不在「遇到谁」，在「重新看见谁」——一段已存在的关系会因为一次冲突进入重估。系统提示：这次冲突是升级补丁不是故障，压下去它明年换个更贵的方式回来。</p>
-          <p style={styP}><span style={styS}>▸ 角色耐久：</span>损耗集中在秋季，位置在睡眠与颈肩。不是大问题，是持续的低度透支——这类损耗的特点是每天都「还行」，累计三个月就「不行」。9月起把恢复排进日程，别等信号变红。</p>
+        <div style={{width:60,height:1,background:'linear-gradient(90deg, transparent, var(--gdim), transparent)',margin:'20px auto'}}></div>
 
-          <h4 style={styH}>三 · 前置剧情完整解析</h4>
-          <p style={styP}>你的存档里有一个明确的执念方向：<span style={styS}>「必须靠自己挣来，别人给的不算数」。</span>它让你在这一局获得了超额的独立性，也让你反复推开本可以接住你的手。这段代码的另一面是一份旧恐惧——欠了就要还，而你上一段剧情里「还」的代价太大。</p>
-          <p style={styP}>需要卸载的不是独立本身，是它的强制性。判断标准很简单：当「自己来」是选择时它是力量，当「自己来」是唯一选项时它是牢笼。这个版本系统会反复给你送来「不得不接受帮助」的场景——那不是削弱你，是在给这段旧代码做减敏。</p>
+        <p style={{color:'var(--dim)',fontSize:11.5,marginBottom:20,lineHeight:1.9}}>每份报告由AI按存档码单独推演 · 没有两份相同<br/>PDF交付 · 引路员私发</p>
+        <button className="btn btn-g" style={{maxWidth:320,margin:'0 auto',fontSize:15,padding:'16px 32px',letterSpacing:'.15em'}} onClick={()=>{const target=document.getElementById('wechat-section');if(target)target.scrollIntoView({behavior:'smooth'});}}>添加微信获取你的深度配置报告</button>
 
-          <h4 style={styH}>四 · Loop溯源路径</h4>
-          <p style={styP}>你的「{L.name}」有清晰的安装痕迹：初次写入在<span style={styS}>7-9岁窗口期</span>，触发事件的特征是「表达了真实需求，得到的回应让你确认了『不该开口』」。二次加固在青春期后段，从此它由事件升级为默认设置。</p>
-          <p style={styP}>卸载顺序（倒序进行）：先解除它在当下的自动触发（察觉即中断，约6-8周），再回访加固事件改写其结论，最后处理初始写入点——最后这一步在意识层做不动，需要进到存档层操作，这也是深度阅读真正的工作区。</p>
+        <div style={{color:'var(--dim)',fontSize:10,marginTop:20,lineHeight:1.8,opacity:.7}}>点击后跳转到微信二维码</div>
 
-          <h4 style={styH}>五 · 系统补丁建议</h4>
-          <p style={styP}>你的{B.element}属性资源当前低位运行。三个可执行参数：<span style={styS}>① 环境</span>——工作视野内增加{B.element==='火'?'暖色调与光源，背光而坐改为面光':B.element==='水'?'流动元素（鱼缸/水景/蓝色系），远离干燥高温位':B.element==='木'?'活体绿植（非塑料），临窗东向为佳':B.element==='金'?'金属质感与留白，清理杂物提高秩序度':'陶土/石材质感与矮重家具，降低漂浮感'}；<span style={styS}>② 作息</span>——你的高效时段在{B.element==='火'?'上午9-13点':B.element==='水'?'夜间21点后':B.element==='木'?'清晨5-9点':B.element==='金'?'下午15-19点':'午后13-15点'}，把最重要的事排进去，垃圾时间处理杂事；<span style={styS}>③ 方位</span>——长期驻留空间以{B.element==='火'?'南':B.element==='水'?'北':B.element==='木'?'东':B.element==='金'?'西':'中/西南'}向为增益位。不是玄学仪式，是把环境变量调到和你配置顺手的档位。</p>
-
-          <h4 style={styH}>六 · 可选装备清单</h4>
-          <p style={styP}><span style={styS}>◆ 主装备 · {GEM[0]}</span>（{B.prefix}系适配）— {GEM[1]}。佩戴位：左手腕。选购要点：天然裸石优于繁复镶嵌，附鉴定证书。</p>
-          <p style={styP}><span style={styS}>◆ 副装备 · 黑曜石</span> — 针对「{L.name}」的补位配置：它不补你的短板，它挡住消耗你短板的东西。佩戴位：右手腕或随身。</p>
-          <p style={{...styP,color:'var(--dim)',fontSize:11.5}}>装备为可选项，不购买不影响报告其他部分的执行。如需引路员代寻（附证书），微信内说明即可。</p>
-
-          <h4 style={styH}>七 · 下一版本预告</h4>
-          <p style={styP}>2030年前后，你将进入下一个大版本。它的主题词是<span style={styS}>「兑现」</span>——这个版本里你搭的所有东西，无论好坏，都会在下个版本收到账单或分红。这也是为什么现在这三年的每一个选择，权重都比你感觉到的更大。</p>
-          <p style={{...styP,color:'var(--dim)',marginTop:14,borderTop:'1px dashed var(--bdr)',paddingTop:12}}>——报告完。你的存档还在写，这份只是当前进度的读取。</p>
-        </div>;})()}
         <div style={{color:'var(--dim)',fontSize:10,marginTop:24,lineHeight:2,maxWidth:340,marginLeft:'auto',marginRight:'auto'}}>本报告仅供娱乐与自我探索。你可以笑可以转发但别太当真——你的人生不由任何系统定义。</div>
         <div className="cz" style={{color:'var(--dim)',fontSize:9,marginTop:16}}>EARTH ONLINE · v6.0</div>
       </div>
