@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>地球Online · 开局配置扫描</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
+<!-- 真八字排盘引擎：lunar-javascript（开源，浏览器直接运行）-->
+<script src="https://cdn.jsdelivr.net/npm/lunar-javascript/lunar.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&family=Noto+Serif+SC:wght@400;600;700;900&family=EB+Garamond:ital@0;1&display=swap');
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#0d0b07}
+.eo{--bg:#0d0b07;--card:#16120d;--gold:#c9a96e;--gdim:#8b7355;--gb:#e8c36a;--parch:#d4c5a9;--dim:#6a5f4f;--bdr:#2e261c;--red:#a3553a;max-width:520px;margin:0 auto;background:var(--bg);color:var(--parch);font-family:'Noto Serif SC',serif;min-height:100vh;line-height:1.85}
+.cz{font-family:'Cinzel',serif;letter-spacing:.15em}.gm{font-family:'EB Garamond',serif}
+.sec{padding:28px 24px;border-bottom:1px solid var(--bdr)}
+.btn{background:0;border:1px solid var(--gold);color:var(--gold);padding:14px 32px;cursor:pointer;font-family:'Noto Serif SC',serif;font-size:14px;letter-spacing:.15em;transition:all .3s;width:100%}.btn:hover{background:rgba(201,169,110,.1)}.btn-g{background:var(--gold);color:#16120d;font-weight:700}.btn-g:hover{background:var(--gb)}
+.opt{display:block;width:100%;text-align:left;background:var(--card);border:1px solid var(--bdr);color:var(--parch);padding:16px 18px;margin-bottom:10px;cursor:pointer;font-family:'Noto Serif SC',serif;font-size:14px;transition:all .25s;line-height:1.6}.opt:hover{border-color:var(--gdim);background:rgba(201,169,110,.05);transform:translateX(3px)}
+.sel{width:100%;background:var(--card);border:1px solid var(--bdr);color:var(--parch);padding:12px 14px;font-family:'Noto Serif SC',serif;font-size:14px;appearance:none;-webkit-appearance:none;cursor:pointer;border-radius:0}.sel:focus{outline:0;border-color:var(--gdim)}.sel option{background:#16120d}
+.inp{width:100%;background:var(--card);border:1px solid var(--bdr);color:var(--parch);padding:12px 14px;font-family:'Noto Serif SC',serif;font-size:14px;border-radius:0}.inp:focus{outline:0;border-color:var(--gdim)}
+.bar-t{width:100%;height:4px;background:#251f17;border-radius:2px;overflow:hidden;margin-top:4px}.bar-f{height:100%;border-radius:2px;transition:width .6s}
+.fade{animation:fd .5s ease forwards}@keyframes fd{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+.pulse{animation:pl 1.6s ease-in-out infinite}@keyframes pl{0%,100%{opacity:.4}50%{opacity:1}}
+.sc{background:linear-gradient(165deg,#1a160f,#0d0b07 50%,#1a1510);border:1px solid var(--gdim);padding:30px 22px;text-align:center;position:relative}.sc::before{content:'';position:absolute;top:8px;left:8px;width:36px;height:36px;border:1px solid var(--gdim);border-width:1px 0 0 1px}.sc::after{content:'';position:absolute;bottom:8px;right:8px;width:36px;height:36px;border:1px solid var(--gdim);border-width:0 1px 1px 0}
+.mg{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin:18px 0}
+.mb{background:var(--card);border:1px solid var(--bdr);color:var(--dim);padding:8px 4px;font-family:'Cinzel',serif;font-size:11px;cursor:pointer;transition:all .3s}.mb:hover{border-color:var(--gdim);color:var(--parch)}.mb.act{border-color:var(--gold);color:var(--gold);background:rgba(201,169,110,.08)}
+.lv{display:inline-block;min-width:20px;text-align:center;font-family:'Cinzel',serif;font-size:11px;font-weight:700;border-radius:2px;padding:0 4px}
+.lv-H{background:rgba(201,169,110,.2);color:var(--gold)}.lv-M{background:rgba(106,95,79,.3);color:var(--parch)}.lv-L{background:rgba(163,85,58,.15);color:var(--red)}
+.demo-badge{position:fixed;top:8px;right:8px;background:rgba(163,85,58,.9);color:#fff;font-size:10px;padding:4px 10px;z-index:99;font-family:'Noto Serif SC',serif;letter-spacing:.1em}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const {useState,useEffect,useMemo}=React;
+
+// ════════ 题库：6道（5维度共鸣 + 1状态）════════
+const Q_DATA=[
+  {dim:"输出",q:"全服限时活动：自由创作24小时，造完全服展示。你：",opts:["看看别人的就行","随便搞一个交差","通宵肝，要让全服记住我"]},
+  {dim:"独立",q:"新副本，零攻略，没人走过。你倾向：",opts:["找个老玩家带我","先搜搜前人经验","自己摸索，慢点就慢点"]},
+  {dim:"秩序",q:"连续三个高难关卡没过，队友都说放弃了。你：",opts:["也觉得太难了，换方向","休息一下改天再试","越难越上头，今天必须过"]},
+  {dim:"资源",q:"赌场副本：押全部身家赢了翻三倍，输了清零。你：",opts:["不赌，每一分都要确定的","押一小部分试试水","All in，能有几回搏"]},
+  {dim:"认知",q:"有份隐藏BOSS弱点的攻略，但只剩残页。你：",opts:["不看了，碰到随机应变","把残页研究透了再去","读一半就自己推演出完整版"]},
+  {dim:"状态",q:"最近这段时间，你的状态更接近：",opts:["满电，到处想搞事","正常运行，不好不坏","低电量，只想躺着","卡顿——想动，但动不了"]},
+];
+const STATE_MAP=["过载状态","稳定运行","节能模式","卡关状态"];
+// 解锁码：引路员回复给用户的暗号。上线后可定期更换（只改这一行）
+const UNLOCK_CODE="破壳";
+// 审阅模式：true = 跳过闸门直接展示全部内容（方便review）。正式上线前改为 false
+const REVIEW_MODE=true;
+
+const DIM_ORDER=["输出","独立","秩序","资源","认知"];
+const DIM_EN={"输出":"OUTPUT","独立":"SOLO","秩序":"ORDER","资源":"LOOT","认知":"INTEL"};
+const BASE_N={输出:"法师",独立:"战士",秩序:"骑士",资源:"猎人",认知:"贤者"};
+
+// ════════ 10个角色变体内容 ════════
+const CLS={
+  输出:{偏:{name:"破阵法师",tag:"规则是用来拆的，拆完的零件刚好够造新的",desc:"破阵法师是地球Online里最让GM头疼的角色模板——这个角色存在的核心意义就是把关卡规则拆成零件，然后用零件搭一个更有意思的东西。你的创造力不走正门专走消防通道，走完还要把消防通道重新装修一下。崇拜你的人觉得你是天才，被你波及的人觉得你是天灾。",ult:{n:"规则熔炉",d:"将现有规则完全解构，在废墟上即兴重建新秩序。冷却很长但每次释放都被全服记住。"},pass:[{n:"直觉编译器",d:"不读规则手册就能感知漏洞"},{n:"混沌亲和",d:"越乱越清醒，有序环境反而犯困"},{n:"表达过载",d:"脑子里四个想法排队偶尔堵车"}],eq:["🔥 高压环境 · deadline对别人是毒药，对你是氮气加速","📕 非主流信息源 · 你的弹药库从不在主干道上——冷门书、怪人、跨界八卦都是装填物","🌙 深夜时段 · 你的灵感高峰在凌晨，系统在那个时段偷偷给你加成"],db:[{n:"续航崩坏",d:"爆发72小时冷却废两周"},{n:"善后过敏",d:"创造和破坏都行，收拾残局从底层缺失"}]},
+  正:{name:"吟游法师",tag:"创造不需要理由，流淌就是意义",desc:"吟游法师是地球Online里最自然的创造者——不是为了证明什么，纯粹因为表达本身就让你舒服。你的输出像一条河，不需要推就在流。别人觉得创作是工作，你觉得不让你创作才是。你的风格不激烈但持久，不震撼但会慢慢渗透进所有人的日常里。",ult:{n:"永续之歌",d:"进入心流后输出效率持续增长不设上限。唯一停止条件是你自己觉得说完了。"},pass:[{n:"心流体质",d:"比任何人都容易进入沉浸状态"},{n:"氛围感染",d:"你的状态会不知不觉传给周围人"},{n:"自愈创作",d:"难受的时候创作就是疗愈"}],eq:["🎵 无打扰的创作位 · 一旦进入心流，打断你的人将承受你三天的怨气","☕ 无生存焦虑的日常 · 你的产出和安全感成正比，逼是逼不出来的","🌿 自然环境 · 树比会议室更能让你回血，这是出厂设定不是矫情"],db:[{n:"启动困难",d:"没灵感的时候比谁都废"},{n:"边界模糊",d:"作品和自我绑太紧，批评作品就是伤害本人"}]}},
+  独立:{偏:{name:"暗影战士",tag:"第二名是第一个输家",desc:"暗影战士是地球Online里最不掩饰竞争心的角色。你不是不合群——你只是不接受自己不是最强的那个。排行榜、对比、胜负，这些是你的燃料。行动力在「有人比你快」的时候达到峰值。你不是坏人，你只是把游戏当游戏玩得最认真的那个。",ult:{n:"夺命追击",d:"锁定目标后所有资源自动聚焦直到超越。副作用：忽略所有非目标事项。"},pass:[{n:"竞争雷达",d:"发现对手时注意力自动拉满"},{n:"速度本能",d:"任何赛道都想第一个到"},{n:"不服输体质",d:"失败是最强的buff"}],eq:["🏆 一个明确的对手 · 没有对手你会自己造一个，不如系统直接配发","⚡ 高强度竞争场 · 别人卷不动的地方，是你的充电桩","📊 实时排名系统 · 看不到名次你焦虑，看到名次你上头——后者对你是良性的"],db:[{n:"赢了空虚",d:"超过目标后瞬间失去动力"},{n:"关系损耗",d:"竞争模式偶尔开到不该开的地方"}]},
+  正:{name:"磐岩战士",tag:"不需要赢你，只需要不需要你",desc:"磐岩战士不争不抢不解释。你的独立不是对别人的对抗，而是对自己的信任——我能搞定所以不需要麻烦别人。你像一块石头，不主动碰撞也不会被推动。这种沉稳让你在任何环境都能活下来，但也让你错过了一些只有两个人才能打开的门。",ult:{n:"不动明王",d:"所有外部支援断开时自我回复和执行力翻倍。越孤立越强。"},pass:[{n:"自给自足",d:"对外部反馈依赖极低"},{n:"沉默抗性",d:"不容易被言语左右"},{n:"独处充能",d:"独处时恢复速度最快"}],eq:["🏔 独立空间 · 一个人的房间抵得上十次团建","⏰ 自主时间表 · 你的效率峰值出现在没人安排你的时候","🔒 不被干涉权 · 「别管我怎么做，看结果」应该写进你的合同"],db:[{n:"情感隔离",d:"太习惯一个人偶尔忘了感受也需要出口"},{n:"被动社交",d:"不主动维护关系等回头发现人走了"}]}},
+  秩序:{偏:{name:"狂战骑士",tag:"压力是我的外挂",desc:"狂战骑士是地球Online里最适合逆风局的角色——别人在高压下崩溃，你在高压下觉醒。你不是喜欢压力，你是需要压力。没有压力的日子你反而迷茫像一台空转的引擎。处理危机的时候比处理日常聪明十倍，因为危机才是你的主场。",ult:{n:"逆风翻盘",d:"生命值越低局势越差，攻击力和决策清晰度越高。濒死状态达到峰值。"},pass:[{n:"压力转化器",d:"压力直接转化为执行力"},{n:"危机嗅觉",d:"别人没意识到问题时你已经在应对了"},{n:"短期极限",d:"短时间内爆发出不可思议的产出"}],eq:["🔥 高难度挑战 · 简单模式对你是一种侮辱，也是一种损耗","⏰ 紧迫deadline · 最后24小时的你，约等于三个平时的你","💪 具体的障碍 · 你需要一面墙来撞，没有墙的旷野反而让你迷路"],db:[{n:"和平焦虑",d:"太顺了反而不安想找事"},{n:"日常失能",d:"常规事务处理能力和危机处理不在一个量级"}]},
+  正:{name:"守护骑士",tag:"有人要守的时候我最清醒",desc:"守护骑士是地球Online里最可靠的存在——不是最强但一定最稳。你相信规则、相信秩序、相信每个人做好自己的部分世界就能运转。力量来源不是天赋而是责任感——有人站在你身后的时候你比任何时候都坚定。你是每个团队都想要但经常忘了感谢的那个人。",ult:{n:"不动如山",d:"压力事件中自动激活：情绪稳定+决策清晰+执行力翻倍。"},pass:[{n:"规则扫描",d:"进场先找规则和边界"},{n:"责任磁铁",d:"别人不扛的东西自动飘向你"},{n:"守护加成",d:"保护他人时自身属性提升"}],eq:["📋 清晰的职责边界 · 知道守哪段城墙，你就能守到最后","👥 值得守护的人 · 你的力量来自身后，不是身前","🏛 稳定的系统 · 规则明确的环境里，你是最强单位"],db:[{n:"过度负重",d:"背了太多别人的活"},{n:"自我消失",d:"一直守护别人忘了自己也需要被守护"}]}},
+  资源:{偏:{name:"赏金猎人",tag:"你存钱的时候我已经翻了三倍",desc:"赏金猎人是地球Online里最会押注的角色——嗅觉灵、手速快、敢下注。你不喜欢确定性，确定性让你无聊。你要的是「所有人都说不行但你觉得行」的局面然后一把all in。赢的时候像神输的时候像鬼，但你永远在找下一局。",ult:{n:"鹰眼扫描",d:"瞬间标记方圆十里所有隐藏资源和机会自动计算风险收益比。"},pass:[{n:"资源雷达",d:"机会出现你总第一个闻到"},{n:"赌徒直觉",d:"算不清时靠感觉而且经常对"},{n:"回血快",d:"输了也不纠结马上找下一个"}],eq:["🎰 高风险高回报场 · 确定性让你犯困，赔率表让你清醒","🌐 信息差地带 · 你赚的从来不是辛苦钱，是认知差价","🏃 快速变化的市场 · 牌桌洗得越快，你的优势越大"],db:[{n:"止损障碍",d:"沉没成本是你最大的敌人"},{n:"稳定过敏",d:"日子太平静你就想搞事"}]},
+  正:{name:"筑城猎人",tag:"慢慢来比较快",desc:"筑城猎人是地球Online里最有耐心的资源玩家——不追热门不抢风口，一砖一瓦慢慢建。满足感不来自一夜暴富来自看着数字稳定增长。你可能不是最富的但一定是资产负债表最健康的那个。背包里没有惊喜但永远不会空。",ult:{n:"铁壁金库",d:"资产进入绝对防御状态任何外部风险无法造成损失。缺点是也无法获得超额收益。"},pass:[{n:"成本预警",d:"任何超支自动触发提醒"},{n:"复利直觉",d:"自然理解时间和积累的关系"},{n:"风险过敏",d:"高风险选项自动降低吸引力"}],eq:["📈 稳定增长曲线 · 复利是你的信仰，时间是你的盟友","🧮 清晰的账本 · 算得明白的事你才睡得着，这不是怂是纪律","⏰ 足够长的时间线 · 别人玩回合制，你玩的是文明系列"],db:[{n:"机会恐惧",d:"好机会来了因为风险犹豫直到窗口关闭"},{n:"快乐延迟",d:"总觉得还没攒够不敢花"}]}},
+  认知:{偏:{name:"暗月贤者",tag:"答案不在路上，在路旁边",desc:"暗月贤者是地球Online里最不按常理出牌的认知者——知识来源是别人觉得没用的地方：一本冷门书、一段奇怪的对话、一个深夜的直觉。你不信权威也不走正道，觉得主流答案大概率平庸，真正有价值的东西藏在角落里。你经常说出让人困惑的话，但三个月后他们发现你是对的。",ult:{n:"暗线连接",d:"瞬间在看似无关的信息间建立隐藏联系，得出所有人都没想到的结论。"},pass:[{n:"直觉优先",d:"第六感准确率高到不科学"},{n:"冷门亲和",d:"越小众越吸引你"},{n:"模式穿透",d:"能看到表面逻辑下面的暗线"}],eq:["🌙 独处与安静 · 你的天线只在低噪音环境下工作","🔮 非主流信息源 · 主流答案大概率平庸，你的金矿在角落里","🌀 无标准答案的问题 · 有标准答案的题留给别人，你负责那些没人会做的"],db:[{n:"沟通障碍",d:"你看到的别人看不到，解释起来费劲"},{n:"实践断层",d:"理解深度远超行动深度"}]},
+  正:{name:"圣殿贤者",tag:"慢是我的快",desc:"圣殿贤者是地球Online里最系统的学习者——不跳步骤不走捷径不靠直觉。你相信知识有正道而正道虽远必达。学习曲线起步最慢但上限最高，因为地基比所有人都扎实。你是那种别人半年速成你花两年学，但学完之后再也不会忘的人。",ult:{n:"全局透视",d:"将所有已学知识瞬间编织成完整网络获得全景理解。副作用：看完可能更不想动了。"},pass:[{n:"系统思维",d:"自动把碎片知识组织成结构"},{n:"正统路径",d:"按既定最优路径学习效率最高"},{n:"知识输出",d:"学完能教教完更懂"}],eq:["📚 系统化知识库 · 碎片信息喂不饱你，你要的是完整体系","🧑‍🏫 值得信任的师承 · 找对老师你能走十年，找错你要纠错十年","🕰 不被催促的节奏 · 你的慢不是慢，是地基工程"],db:[{n:"知识洁癖",d:"没学完不敢动手导致永远在准备中"},{n:"权威依赖",d:"太信任权威容易被框住"}]}},
+};
+
+const MBTI_X={
+ 法师:{INTJ:"精密制导型爆破手——拆规则不靠冲动靠计算，找到承重柱精准拆掉整栋楼自己倒。最大bug是以为所有人都跟你一样理性。",INTP:"理论纵火犯——拆规则不为了建新的，只想看看内部结构。钟表全拆了装不回去，但你完全不觉得这是问题。",ENTJ:"CEO型攻城锤——拆完规则还要开公司把新规则卖给别人。效率极高善后能力前三。",ENTP:"多线程混乱发生器——同时拆三栋楼，每栋用的方法都不同。你的聊天记录里全是写到一半的方案，口头禅是「等等我有个更好的想法」，队友的口头禅是「求你先把上一个做完」。",INFJ:"殉道型拆迁办主任——拆之前先在心里给所有受影响的人写道歉信，拆完还要检查有没有人受伤。最累的法师，累死你的不是拆迁本身，是你的共情系统。",INFP:"内心独白型拆迁队长——拆规则是因为真心觉得世界底层设计不够美。能为理想点燃整栋楼，然后坐废墟上写诗。",ENFJ:"传教士型爆破专家——先把所有人感动哭，趁他们擦眼泪把墙拆了。等他们反应过来，已经站在一片空地上鼓掌了。",ENFP:"流星型社交核弹——把所有人拉进引力场让他们自愿帮你拆。一天四十个想法三十九个活不过晚饭。",ISTJ:"公务员型爆破工程师——做好拆迁计划书按时拆掉填善后报告。最可怕的法师，因为唯一能善后。",ISFJ:"保姆型定时炸弹——平时是全服最温柔的人，默默帮所有人收拾残局。但积压到临界点的那次爆发，能让群聊安静三十秒。你不常拆，但你拆的那一次，所有人记很多年。",ESTJ:"包工头型推土机——拆规则效率全服第一，但拆完第一件事就是在原地立一块新规则牌。你不是在破坏秩序，你是在进行强制版本更新，只是过程比较暴力。",ESFJ:"居委会主任型纵火犯——拆之前要确保所有人的情绪都被照顾到、水杯都续满了、该撤离的都撤离了。这导致你的爆破永远在延期。最不像法师的法师，也是人缘最好的那个。",ISTP:"冷面手术刀——不说话不解释直接动手，等人发现规则已经没了你在旁边喝茶。",ISFP:"游击行为艺术家——你只是按自己的方式活着，按自己的审美做事，然后规则自己就碎了。最无辜的法师：「我没有要拆啊，它自己断的。」",ESTP:"肾上腺素型拆迁户——拆规则不需要理由不需要理想，只需要一个「这样会很刺激」的直觉。最快乐的法师，也是事后最不愿看善后报告的。人生信条：先干了再说。",ESFP:"派对型爆竹——把拆规则变成一场派对：有灯光、有音效、有观众互动环节，等大家鼓完掌才发现墙已经没了。神奇的是拆完每个人都很开心，包括那面墙。"},
+战士:{INTJ:"孤狼计算机——打全图不带队友，战术全在脑子里。你不是讨厌合作，是开会十分钟你已经在心里把整个项目做完了，剩下五十分钟在忍。效率高到让人自闭，包括让你自己自闭。",INTP:"哲学隐士——独处不是社恐，是大部分人的思维速度跟不上你。你一个人的时候在和柏拉图、量子力学和昨天的bug同时对话，加个人进来反而卡顿。",ENTJ:"独裁型指挥官——自己能干完所有人的活，还真诚地奇怪为什么别人不行。你的口头禅是「算了我来」，你团队的口头禅是「让他来」。双赢，一种诡异的双赢。",ENTP:"社交型独行侠——看起来谁都聊得来，实际上谁的建议都没采纳过。你的社交是采集信息，决策永远关起门来自己做。朋友很多，军师为零。",INFJ:"孤独先知——看得比谁都远，走得比谁都独，累得比谁都深。你早就看到了三年后的问题，但解释成本太高，于是选择自己默默把坑填了。",INFP:"流浪吟游者——不是融不进去，是心里那个世界比外面这个有趣太多。你人在工位，魂在自己搭的精神宇宙里旅行，偶尔回来回个消息。",ENFJ:"独行英雄情结——自己扛所有人的活，然后被自己感动得不行。你嘴上说「没事我可以」，心里盼着有人看穿这句话。可惜你演技太好，没人看穿过。",ENFP:"蝴蝶效应solo选手——明明能当全场社交核心，偏偏关键时刻选择单飞。热闹是你的兴趣，独行是你的本体，所有人都以为很懂你，没有一个猜对过。",ISTJ:"铁壁执行者——给你一个任务，你能一个人磨到地老天荒。不求助不是傲慢，是你的流程里压根没有「求助」这个节点。",ISFJ:"隐形后勤——默默做完所有事，然后说「没什么」。全队的舒适都建立在你的劳动上，但功劳簿上找不到你，因为名字是你自己划掉的。",ESTJ:"独断项目经理——决定、执行、验收全自己来，别人只需要配合。你的管理哲学是「与其教会别人，不如自己做完」，于是你永远最忙。",ESFJ:"矛盾体——想照顾所有人，但同时想全都自己来。你的内心常年开着两个进程：一个在问「大家还好吗」，一个在喊「都别动让我来」。",ISTP:"极简生存者——一把刀一个背包，多余的东西和多余的人都是负重。你的生活哲学是删除，社交哲学也是。",ISFP:"安静自由灵魂——不争不抢不解释，但你的存在方式本身就是一份宣言。别人用嘴活着，你用审美活着。",ESTP:"街头霸王——靠本能反应活着，不需要计划，因为你就是计划本身。出事的时候全场最冷静的是你，没事的时候全场最先搞出事的也是你。",ESFP:"聚光灯独狼——全场焦点，但关键决策永远自己做。热闹是你的表演，solo是你的本体，散场后那个一个人走回家的背影才是真的你。"},
+骑士:{INTJ:"战略守城者——你守的规则不是别人给的，是你自己推演出来的最优解，所以比谁都坚定。让你改规则可以，先在逻辑上赢过你。目前战绩：无人达成。",INTP:"规则理论家——遵守规则是因为你理解了背后的逻辑。哪天逻辑不成立，你拆规则的速度比法师还快。你的服从是有条件的，条件是「讲得通」。",ENTJ:"铁腕执政官——不只遵守规则，还顺手负责制定和执行。你走进任何混乱的场子，三天后那里就有了制度、流程，和一个怕你的群。",ENTP:"质疑型骑士——一边守规则一边找漏洞，精神分裂般的存在。你是规则最忠诚的卫兵，也是最了解它弱点的人。幸好你没黑化。",INFJ:"理想主义卫士——你守的不是规则本身，是规则背后那个「世界应该如何运行」的理想。规则烂掉时你比谁都痛苦：别人只是烦，你是幻灭。",INFP:"内心骑士——外表柔软随和，内心有一套铁打的原则。平时什么都好说，碰到底线的那一刻，所有人才发现你比谁都硬。",ENFJ:"光辉骑士——守护不出于义务而出于爱，守着守着忘了问自己累不累。你是全队的城墙，但城墙也会塌，希望塌之前有人发现裂缝。",ENFP:"混乱正义使者——你真心信规则，但你执行规则的方式让所有人困惑。目标是秩序，路径是即兴，效果是大家又爱又怕。",ISTJ:"骑士中的骑士——这个职业是系统照着你量身定做的。规则、流程、责任、稳定，每一个词都长在你的舒适区里。",ISFJ:"沉默护城者——全服最可靠的后防线。你挡掉的麻烦没人看见，因为被你挡掉的麻烦根本没机会发生。",ESTJ:"督察型骑士——不只自己守规则，还负责盯着所有人守。你在的地方，纪律性+50%，松弛感-50%。",ESFJ:"暖心城墙——你守的从来不是规则，是规则保护下的那些人。制度对你只是工具，人才是目的，这让你成为最有温度的骑士。",ISTP:"沉默哨兵——不说话，但比谁都警觉。出手永远精准且刚好够用，多一分力气都不浪费。平时存在感为零，出事第一个动。",ISFP:"柔韧型骑士——你的抗压方式不是硬扛而是弯曲。风暴来的时候别人折断，你弯下去，风停了又弹回来，还顺便看了场风景。",ESTP:"前线冲锋手——你喜欢规则，因为知道边界在哪之后，你可以精准地踩在边界上跳舞。守规则的人里你最野，野的人里你最守规则。",ESFP:"嘉年华骑士——守规则，但在规则范围内把每一天活成节日。你证明了纪律和快乐可以共存，虽然你的快乐经常吵到别人。"},
+猎人:{INTJ:"精算猎人——每次出手都算过投入产出比，从不浪费一颗子弹。别人看到机会先兴奋，你先打开表格。你错过过一些惊喜，但从没踩过一个坑。",INTP:"理论型藏宝人——你享受「发现资源在哪」的过程，远多过把它挖到手。地图上标满了你找到的矿，一个都没开采，你已经在找下一个了。",ENTJ:"资源帝国建造者——找到资源只是第一步，你要的是建一整套产业链。别人捡到金子，你看到的是金矿、冶炼厂和上市公司。",ENTP:"资源发散器——一个矿点能想出七种开采方案，但最后一种都没执行完，因为第八种更有意思。你的点子能养活一个团队，前提是有人替你收尾。",INFJ:"直觉型猎人——找资源不靠数据靠预感，而且准得吓人。你说不清为什么觉得「这个能成」，三个月后它成了，你还是说不清。",INFP:"理想主义淘金者——只挖自己觉得有意义的矿，纯粹的钱不足以驱动你。这让你错过很多机会，也让你挖到的每一桶金都睡得着觉。",ENFJ:"分享型猎人——找到好资源，第一反应是「谁需要这个」而不是「能卖多少」。你的人脉网就是这么织起来的，慷慨是你最大的复利。",ENFP:"彩虹猎人——背包里什么都有，因为你觉得什么都有意思。别人的收藏有主题，你的收藏有故事，每一件都对应一次「当时就是很心动」。",ISTJ:"稳定开采者——找到一个矿就能挖到见底。别人追风口，你守矿脉，十年后回头看，守着不动的你反而走得最远。",ISFJ:"仓鼠型猎人——默默囤了一仓库资源，外人完全看不出来你这么富。你的安全感以库存计价，你的低调以年计算。",ESTJ:"矿业CEO——找矿、挖矿、卖矿一条龙，全流程管理到位。你不是运气好，你是把「捡钱」做成了标准化作业流程。",ESFJ:"团购型猎人——发现好东西的第一反应是拉群分享。你的资源观是「独食不肥」，于是人人有肉吃，而组局的永远是你。",ISTP:"极简猎人——只拿需要的，多的不要。你的背包永远比别人轻，行动永远比别人快。断舍离对你不是修行，是出厂设置。",ISFP:"审美型收藏家——你的收藏标准不是值多少钱，是好不好看。别人投资升值空间，你投资心动瞬间，神奇的是长期看你也没亏。",ESTP:"冒险掘金者——高风险高回报是你的瘾。赌对一次够别人挖一年，赌错了你耸耸肩说「下一把」。你的心脏是全服最强装备。",ESFP:"购物狂型探险家——探索本身就是奖励，资源只是顺手捡的纪念品。你逛过的地图比谁都多，留下的快乐脚印也是。"},
+贤者:{INTJ:"系统架构师——你不只懂规则，你看到的是规则背后的规则。和人聊天经常觉得对方太浅，于是闭嘴，于是被当成高冷。其实你只是在等一个能聊到第三层的人。",INTP:"纯粹理论家——为了搞懂而搞懂，应用是别人的事。你研究一个问题的深度足以写论文，动力仅仅是「不搞懂睡不着」。",ENTJ:"知识型统治者——学东西是为了用，用了就要赢。你的书架不是装饰，是军火库，每一本都在某场战役里开过火。",ENTP:"知识碎片收集者——什么都知道一点，每个都没学完。聊天时极其危险：任何话题你都能接，接完就把话题带到没人去过的地方。",INFJ:"深水区潜行者——你的认知深度让大多数人不安，因为你看到了他们不愿意看的那一层。于是你学会了浅一点说话，深一点沉默。",INFP:"诗人学者——你学的从来不是知识，是意义。同一本书，别人学到方法论，你学到了人生，还顺便流了泪。",ENFJ:"布道型贤者——学完就想教，教完觉得自己更懂了。你的学习闭环里必须有「别人听懂时的眼神」，那是你的经验值结算画面。",ENFP:"万花筒认知者——你的知识图谱像蜘蛛网，什么都连上了，但找不到中心。直到某天所有线索突然汇合，你说出一个让全场安静的洞察。",ISTJ:"百科全书型——你记住的东西比搜索引擎还准，唯一的bug是偶尔忘了知识需要更新。你的大脑是图书馆，偶尔需要除旧书。",ISFJ:"档案管理员——安静地积累海量知识，从不显摆。直到某天有人遇到难题，才发现你是行走的解决方案库，而且检索免费。",ESTJ:"知识工程师——学到的东西必须整理成SOP，然后要求所有人执行。你把模糊的经验变成清晰的流程，把「大概懂了」的人变成「真的会了」。",ESFJ:"故事型传授者——你用亲身经历教人，比课本有效一百倍。你的知识都带着体温，听过的人能记十年。",ISTP:"实战型贤者——只学能立刻用的，理论课秒睡，实操课第一。你的知识不在脑子里，在手上。",ISFP:"感性认知者——你的学习方式不是阅读是感受。美术馆比图书馆更适合你：你在一幅画前站十分钟学到的东西，别人读十章都没有。",ESTP:"速学型——看一遍就会，忘得也快。技能获取速度全服第一，反正需要时再看一遍就行，你的大脑走的是按需加载。",ESFP:"体验式学习者——不亲自试一遍学不会，试过一遍就比谁都懂。你交的学费都变成了肌肉记忆，书上的字只有摔过跤才看得懂。"},
+};
+const MBTI_TYPES=["INTJ","INTP","ENTJ","ENTP","INFJ","INFP","ENFJ","ENFP","ISTJ","ISFJ","ESTJ","ESFJ","ISTP","ISFP","ESTP","ESFP"];
+
+const SEASON={
+  法师:{theme:"破壳",s1:"你的输出模块在本赛季进入版本红利期——之前攒的东西，今年有一个明确的「被看见」窗口。",s2:"但同一时期，系统在你的资源位安排了一次压力测试，时间点集中在"},
+  战士:{theme:"开闸",s1:"你solo惯了的打法，本赛季会遇到一个不得不组队的主线任务——这不是惩罚，是系统在给你解锁新地图。",s2:"关系位有一个重要NPC将在特定窗口期上线，信号显示在"},
+  骑士:{theme:"卸甲",s1:"你扛了几个版本的东西，本赛季系统会强制你放下一部分——主动放和被动掉，体验完全不同。",s2:"职业位出现一次结构性变动信号，关键决策点位于"},
+  猎人:{theme:"换猎场",s1:"你熟悉的资源地图本赛季在贬值，新猎场的入口已经出现，但它伪装成了一个「看起来不赚钱」的机会。",s2:"财务位有一组双向信号——一个进项窗口和一个漏损点，分别位于"},
+  贤者:{theme:"出关",s1:"你研究了很久的东西，本赛季到了「不得不交卷」的节点——系统会用一个外部事件逼你把认知变成行动。",s2:"学习位与事业位出现罕见的连线信号，激活条件是"},
+};
+
+// ════════ 五维配置详解（按出厂等级，毒舌版）════════
+const DIM_DETAIL={
+  输出:{H:"不是在输出就是在酝酿下一波输出，闲着对你来说是一种系统故障。",M:"有想法也有产出，但节奏看心情——灵感和拖延共用一张日程表。",L:"输出通道常年低功率运行：肚子里有货，门口有岗。"},
+  独立:{H:"自己的事自己扛，别人的事看心情扛，反正不求人。「我需要帮忙」这五个字在你的词库里属于生僻词。",M:"能独立也能配合，服务器里少见的双模玩家——缺点是两边的人都以为你是他们那边的。",L:"重大决定习惯先问三个人，问完之后更纠结了。"},
+  秩序:{H:"规则给你安全感，混乱让你想立刻整理一下——包括别人的人生。",M:"守规矩但留后门，吐槽完该交的还是会按时交。",L:"规则在你眼里是参考文献，压力一大系统直接弹窗报错。"},
+  资源:{H:"资源出现0.1秒内已经算好收益，雷达从不休眠，连睡觉都在扫描。",M:"对钱有概念但不痴迷，该省省该花花，财务系统佛系运行。",L:"机会经常从眼前走过的时候，你正在想别的事。"},
+  认知:{H:"几个碎片就能拼出完整逻辑，「不知道」三个字对你是物理伤害。",M:"感兴趣的能钻到地心，不感兴趣的看三行就关掉。",L:"学习靠实战不靠书本——交过的学费都长在了反应速度上。"},
+};
+
+// ════════ 系统备注（每个变体一条，报告彩蛋）════════
+const VARIANT_NOTE={
+  破阵法师:"系统备注：此角色模板的用户满意度呈极端双峰分布——要么五星好评要么一星差评，三星约等于不存在。",
+  吟游法师:"系统备注：该模板的产出曲线与心情高度耦合，建议周围人类学会看天气。",
+  暗影战士:"系统备注：该角色在没有对手时会自行制造一个，包括跟昨天的自己过不去。",
+  磐岩战士:"系统备注：该模板的求助功能出厂未激活，激活教程在说明书最后一页——但他不看说明书。",
+  狂战骑士:"系统备注：给该角色放长假属于高危操作，闲置超过两周会自行寻找悬崖。",
+  守护骑士:"系统备注：该模板的「拒绝」按键被设计在很难按到的位置，疑似出厂故障，实为出厂特性。",
+  赏金猎人:"系统备注：该角色的风险评估模块和多巴胺模块共用一条电路。",
+  筑城猎人:"系统备注：该模板的消费冷却时间为全服最长，购物车里的东西平均存放十四个月。",
+  暗月贤者:"系统备注：该角色说的话建议保存三个月后再读，准确率会显著上升。",
+  圣殿贤者:"系统备注：该模板的「准备完成」信号从未被系统观测到过。",
+};
+
+// ════════ Loop（配置内生：最弱的十神组）════════
+const LOOP_MAP={
+  输出:{name:"输出低功率循环",code:"0xE7A3",desc:"在你的开局配置里，输出是五组模块中信号最弱的一条线——不是没有，是常年低功率运行。你心里有想表达的东西，但这条通道天生窄，需要刻意拓宽才能让它流动。很多「想说说不出、想做没动手」的时刻，根源在这里。"},
+  独立:{name:"自主低配循环",code:"0xB4D1",desc:"你的配置里，独立模块是最弱的一组——你天然倾向于参考外部、依赖支援。这不是缺陷，但它意味着「自己拍板」对你来说消耗特别大，重大决定容易反复摇摆或交给别人。"},
+  秩序:{name:"抗压薄弱循环",code:"0xA1C7",desc:"你的配置里，秩序模块信号最弱——规则和压力对你来说是高消耗源。别人觉得正常的强度，你的系统已经在报警。反复出现的疲惫和逃避冲动，很可能从这条线来。"},
+  资源:{name:"资源断流循环",code:"0xC9F2",desc:"你的配置里，资源模块是最弱的一组——对机会的嗅觉和抓取力天生低配。不是你不努力，是这条线的信号需要外部增益才能跑顺。「明明很拼却总留不住」的感觉，源头在这里。"},
+  认知:{name:"认知窄带循环",code:"0x9F02",desc:"你的配置里，认知模块信号最弱——吸收和消化新东西对你是高成本操作。你更依赖行动和经验而不是学习和分析。这条线不补，同样的坑会换着包装反复出现。"},
+};
+
+// ════════ 共鸣回响模板 ════════
+const ECHO={
+  输出:{H:"你的配置里，输出模块出厂即高配（系统判定：H）——而你在实战校准里选了「{opt}」。系统确认：本色出演。",L:"你的配置里输出信号偏弱，而你选了「{opt}」——配置与练法一致，系统无冲突记录。"},
+  独立:{H:"你的配置里，独立模块是高配项——你选了「{opt}」。系统确认：这就是你的出厂设定在说话。",L:"你的独立模块配置偏低，你也选了「{opt}」——你很了解自己的打法。"},
+  秩序:{H:"你的秩序模块出厂即满级——「{opt}」这个选择，系统毫不意外。本色出演。",L:"你的秩序模块天生低配，「{opt}」——配置与行为一致。"},
+  资源:{H:"你的资源模块是配置里的强项——你选了「{opt}」。雷达没坏，一直在线。",L:"资源模块在你的配置里偏弱，「{opt}」——和出厂设定吻合。"},
+  认知:{H:"你的认知模块出厂高配——「{opt}」，系统确认：你天生就是这么学东西的。",L:"认知模块配置偏低，「{opt}」——你选择了适合自己的路径。"},
+};
+
+// ════════════════════════════════════════════
+// 真八字引擎 v2 —— 格局法
+// 逻辑：日主为核心 → 月令藏干定格局候选 → 透干者立格（本气优先）
+// → 比劫不立格 → 格局十神定职业与正偏 → 月令权重远高于其他柱
+// ════════════════════════════════════════════
+const SS_GROUP={"比肩":"独立","劫财":"独立","食神":"输出","伤官":"输出","正财":"资源","偏财":"资源","正官":"秩序","七杀":"秩序","偏官":"秩序","正印":"认知","偏印":"认知","枭神":"认知"};
+const SS_PIAN=new Set(["劫财","伤官","偏财","七杀","偏官","偏印","枭神"]);
+const GAN_INFO={"甲":["木",1],"乙":["木",0],"丙":["火",1],"丁":["火",0],"戊":["土",1],"己":["土",0],"庚":["金",1],"辛":["金",0],"壬":["水",1],"癸":["水",0]};
+const SHENG={木:"火",火:"土",土:"金",金:"水",水:"木"};
+const KE={木:"土",土:"水",水:"火",火:"金",金:"木"};
+const ELEM_PREFIX={金:"精准",木:"生长",水:"隐流",火:"爆燃",土:"磐固"};
+// 十神推算：以日主为"我"，看对方与我的生克与阴阳
+function shiShenOf(dayGan,g){
+  const di=GAN_INFO[dayGan],gi=GAN_INFO[g];if(!di||!gi)return null;
+  const same=di[1]===gi[1];
+  if(gi[0]===di[0])return same?"比肩":"劫财";
+  if(SHENG[di[0]]===gi[0])return same?"食神":"伤官";
+  if(KE[di[0]]===gi[0])return same?"偏财":"正财";
+  if(KE[gi[0]]===di[0])return same?"七杀":"正官";
+  return same?"偏印":"正印";
+}
+
+function realBazi(y,m,d,hour,timeKnown){
+  try{
+    if(typeof Solar==="undefined")return null;
+    const solar=Solar.fromYmdHms(y,m,d,timeKnown?hour:12,0,0);
+    const ec=solar.getLunar().getEightChar();
+    const dayGan=ec.getDayGan();
+    const elem=GAN_INFO[dayGan][0];
+    const yearGan=ec.getYearGan(),monthGan=ec.getMonthGan();
+    const timeGan=timeKnown?ec.getTimeGan():null;
+    const mh=ec.getMonthHideGan()||[]; // 月支藏干 [本气,中气,余气]
+
+    // ── 1. 格局判定：月令藏干中、透出天干者立格（本气优先），比劫不立格 ──
+    const visible=[yearGan,monthGan,timeGan].filter(Boolean);
+    let gejuGan=null;
+    for(const h of mh){
+      const ss=shiShenOf(dayGan,h);
+      if(ss==="比肩"||ss==="劫财")continue;
+      if(visible.indexOf(h)>=0){gejuGan=h;break;}
+    }
+    if(!gejuGan){ // 不透则以月令本气立格（本气为比劫时顺延中气/余气）
+      for(const h of mh){const ss=shiShenOf(dayGan,h);if(ss!=="比肩"&&ss!=="劫财"){gejuGan=h;break;}}
+    }
+
+    // ── 2. 加权分布（月令为纲：月支本气2.0 远高于其他位置）──
+    const sums={};DIM_ORDER.forEach(g=>sums[g]=0);
+    const indiv={};
+    const addG=(g,w)=>{if(!g)return;const ss=shiShenOf(dayGan,g);const grp=SS_GROUP[ss];if(!grp)return;sums[grp]+=w;indiv[ss]=(indiv[ss]||0)+w;};
+    addG(yearGan,0.8);addG(monthGan,1.2);if(timeGan)addG(timeGan,0.8);
+    const addHide=(arr,ws)=>{(arr||[]).forEach((h,i)=>addG(h,ws[i]||0.1));};
+    addHide(mh,[2.0,0.6,0.3]);
+    addHide(ec.getYearHideGan(),[0.6,0.3,0.15]);
+    addHide(ec.getDayHideGan(),[0.6,0.3,0.15]);
+    if(timeKnown)addHide(ec.getTimeHideGan(),[0.6,0.3,0.15]);
+
+    // ── 3. 强弱判定 → 用神定职业 ──
+    // 旧版直接以格局（月令当令之神）定职业，会把"印旺身强"误判为贤者。
+    // 正确逻辑：先判身强身弱——
+    //   扶我的力量 = 印(认知) + 比劫(独立)；泄耗克我 = 食伤(输出) + 财(资源) + 官杀(秩序)
+    //   身强 → 能量需要出口 → 用神取食伤/财/官杀中最强者 → 角色 = 能量的去处
+    //   身弱 → 需要扶持 → 用神取印/比劫中最强者 → 角色 = 力量的来源
+    const support=sums["认知"]+sums["独立"];
+    const drain=sums["输出"]+sums["资源"]+sums["秩序"];
+    const strong=support>=drain;
+    let hi;
+    if(strong){
+      hi=["输出","资源","秩序"].reduce((a,b)=>sums[a]>=sums[b]?a:b);
+    }else{
+      hi=["认知","独立"].reduce((a,b)=>sums[a]>=sums[b]?a:b);
+    }
+    // 正/偏：所选用神组内，具体十神谁更强
+    let p=0,z=0;Object.keys(indiv).forEach(ss=>{if(SS_GROUP[ss]===hi){if(SS_PIAN.has(ss))p+=indiv[ss];else z+=indiv[ss];}});
+    const vt=p>=z?"偏":"正";
+    // 格局仅作元数据保留（月令立格，比劫不立格）
+    let geju=gejuGan?(shiShenOf(dayGan,gejuGan)+"格"):"建禄/羊刃";
+
+    // ── 4. 雷达 & Loop ──
+    const maxS=Math.max(...DIM_ORDER.map(g=>sums[g]),0.01);
+    const pct={};const lv={};
+    const sorted=[...DIM_ORDER].sort((a,b)=>sums[b]-sums[a]);
+    sorted.forEach((g,i)=>{lv[g]=i<2?"H":i<3?"M":"L";});
+    DIM_ORDER.forEach(g=>{pct[g]=Math.round(28+(sums[g]/maxS)*67);});
+    const lo=DIM_ORDER.reduce((a,b)=>sums[a]<=sums[b]?a:b);
+    return {prefix:ELEM_PREFIX[elem],element:elem,dayGan,geju,hiDim:hi,loDim:lo,variant:vt,pct,lv,demo:false};
+  }catch(e){return null;}
+}
+// 排盘库加载失败时的演示模式
+function demoBazi(y,m,d){
+  let seed=y*10000+m*100+d;const rnd=()=>{seed=(seed*9301+49297)%233280;return seed/233280;};
+  const sums={};DIM_ORDER.forEach(g=>sums[g]=1+rnd()*3);
+  const hi=DIM_ORDER.reduce((a,b)=>sums[a]>=sums[b]?a:b);
+  const lo=DIM_ORDER.reduce((a,b)=>sums[a]<=sums[b]?a:b);
+  const elem=["木","火","土","金","水"][y%5];
+  const maxS=Math.max(...DIM_ORDER.map(g=>sums[g]));
+  const pct={};const lv={};const sorted=[...DIM_ORDER].sort((a,b)=>sums[b]-sums[a]);
+  sorted.forEach((g,i)=>{lv[g]=i<2?"H":i<3?"M":"L";});
+  DIM_ORDER.forEach(g=>{pct[g]=Math.round(28+(sums[g]/maxS)*67);});
+  return {prefix:ELEM_PREFIX[elem],element:elem,dayGan:"演",hiDim:hi,loDim:lo,variant:rnd()>0.5?"偏":"正",pct,lv,demo:true};
+}
+
+// ════════ UI 组件 ════════
+function Sl({value,onChange,placeholder,children}){
+  return <div style={{position:'relative'}}><select className="sel" value={value} onChange={onChange}><option value="" disabled>{placeholder}</option>{children}</select><span style={{position:'absolute',right:12,top:'50%',transform:'translateY(-50%)',pointerEvents:'none',color:'var(--gdim)',fontSize:9}}>▼</span></div>;
+}
+
+function Radar({pct}){
+  const cx=100,cy=104,r=68,ang=DIM_ORDER.map((_,i)=>(Math.PI*2*i/5)-Math.PI/2);
+  const pt=(i,s)=>`${cx+r*s*Math.cos(ang[i])},${cy+r*s*Math.sin(ang[i])}`;
+  const b=DIM_ORDER.map(d=>(pct[d]||50)/100);
+  return <svg viewBox="0 0 200 208" style={{width:'100%',maxWidth:240,margin:'0 auto',display:'block'}}>
+    <polygon points={ang.map((_,i)=>pt(i,1)).join(' ')} fill="none" stroke="#2e261c" strokeWidth=".5"/>
+    <polygon points={ang.map((_,i)=>pt(i,.5)).join(' ')} fill="none" stroke="#2e261c" strokeWidth=".5" strokeDasharray="2,2"/>
+    {ang.map((a,i)=><line key={i} x1={cx} y1={cy} x2={cx+r*Math.cos(a)} y2={cy+r*Math.sin(a)} stroke="#2e261c" strokeWidth=".5"/>)}
+    <polygon points={b.map((_,i)=>pt(i,b[i])).join(' ')} fill="rgba(201,169,110,.13)" stroke="#c9a96e" strokeWidth="1.6"/>
+    {b.map((s,i)=>{const x=cx+r*s*Math.cos(ang[i]),y=cy+r*s*Math.sin(ang[i]);return <circle key={i} cx={x} cy={y} r="2.5" fill="#c9a96e"/>;})}
+    {ang.map((a,i)=>{const x=cx+(r+16)*Math.cos(a),y=cy+(r+16)*Math.sin(a);return <text key={i} x={x} y={y} textAnchor="middle" dominantBaseline="middle" fill="#8b7355" fontSize="8" fontFamily="'Noto Serif SC',serif">{DIM_ORDER[i]}</text>;})}
+  </svg>;
+}
+
+function Title({go}){return <div className="sec fade" style={{minHeight:'100vh',display:'flex',flexDirection:'column',justifyContent:'center',alignItems:'center',textAlign:'center',borderBottom:'none'}}>
+  <div className="cz" style={{color:'var(--dim)',fontSize:10,letterSpacing:'.4em'}}>E A R T H &nbsp; O N L I N E</div>
+  <div className="gm" style={{color:'var(--gdim)',letterSpacing:12,opacity:.6,margin:'12px 0'}}>— ◆ —</div>
+  <h1 style={{color:'var(--gb)',fontSize:38,fontWeight:900,letterSpacing:'.1em',lineHeight:1.3,margin:'12px 0'}}>开局配置<br/>扫描</h1>
+  <div className="gm" style={{color:'var(--gdim)',letterSpacing:12,opacity:.6,margin:'10px 0'}}>— ◆ —</div>
+  <p style={{color:'var(--dim)',fontSize:13,maxWidth:280,margin:'16px auto 36px',lineHeight:2}}>系统将读取你的上线数据，<br/>解析你这一局带了什么设定来。</p>
+  <div style={{width:'100%',maxWidth:280}}><button className="btn" onClick={go}>开 始</button></div>
+  <div style={{color:'var(--dim)',fontSize:10,marginTop:16}}>约 2 分钟 · 50 种角色配置</div>
+</div>;}
+
+function Quiz({onDone}){
+  const [i,setI]=useState(0);const [answers,setAnswers]=useState([]);
+  const pick=v=>{const n=[...answers,v];if(i+1<Q_DATA.length){setAnswers(n);setI(i+1);}else onDone(n);};
+  return <div className="sec fade" style={{minHeight:'100vh',display:'flex',flexDirection:'column',justifyContent:'center',borderBottom:'none'}}>
+    <div style={{display:'flex',justifyContent:'space-between',marginBottom:8}}><span className="cz" style={{color:'var(--dim)',fontSize:10}}>实战校准</span><span className="cz" style={{color:'var(--gold)',fontSize:12}}>{i+1}/{Q_DATA.length}</span></div>
+    <div className="bar-t" style={{marginBottom:32}}><div className="bar-f" style={{width:`${((i+1)/Q_DATA.length)*100}%`,background:'var(--gold)'}}/></div>
+    <h2 style={{color:'var(--gb)',fontSize:19,fontWeight:700,lineHeight:1.7,marginBottom:24}}>{Q_DATA[i].q}</h2>
+    {Q_DATA[i].opts.map((o,idx)=><button key={idx} className="opt" onClick={()=>pick(idx)}>{o}</button>)}
+  </div>;
+}
+
+function Birth({go}){
+  const [y,sY]=useState(""),[m,sM]=useState(""),[d,sD]=useState(""),[t,sT]=useState(""),[c,sC]=useState("");
+  const yrs=Array.from({length:71},(_,i)=>2010-i),mos=Array.from({length:12},(_,i)=>i+1);
+  const mx=(y&&m)?new Date(y,m,0).getDate():31;const ds=Array.from({length:mx},(_,i)=>i+1);
+  const ts=[["23:00–01:00",0],["01:00–03:00",2],["03:00–05:00",4],["05:00–07:00",6],["07:00–09:00",8],["09:00–11:00",10],["11:00–13:00",12],["13:00–15:00",14],["15:00–17:00",16],["17:00–19:00",18],["19:00–21:00",20],["21:00–23:00",22],["不确定",-1]];
+  return <div className="sec fade" style={{minHeight:'100vh',display:'flex',flexDirection:'column',justifyContent:'center',borderBottom:'none'}}>
+    <div className="cz" style={{color:'var(--dim)',fontSize:10,textAlign:'center',marginBottom:8}}>最后一步</div>
+    <h2 style={{color:'var(--gold)',fontSize:22,fontWeight:700,textAlign:'center',marginBottom:6}}>输入上线坐标</h2>
+    <p style={{color:'var(--dim)',fontSize:12,textAlign:'center',marginBottom:28}}>系统将从你的上线数据中读取开局配置——<br/>你的角色不由答题决定，由它决定</p>
+    <label style={{color:'var(--dim)',fontSize:12,marginBottom:6,display:'block'}}>上线日期（公历）</label>
+    <div style={{display:'grid',gridTemplateColumns:'1.3fr 1fr 1fr',gap:8,marginBottom:14}}>
+      <Sl value={y} onChange={e=>sY(e.target.value)} placeholder="年">{yrs.map(v=><option key={v} value={v}>{v}年</option>)}</Sl>
+      <Sl value={m} onChange={e=>sM(e.target.value)} placeholder="月">{mos.map(v=><option key={v} value={v}>{v}月</option>)}</Sl>
+      <Sl value={d} onChange={e=>sD(e.target.value)} placeholder="日">{ds.map(v=><option key={v} value={v}>{v}日</option>)}</Sl>
+    </div>
+    <label style={{color:'var(--dim)',fontSize:12,marginBottom:6,display:'block'}}>上线时刻</label>
+    <div style={{marginBottom:14}}><Sl value={t} onChange={e=>sT(e.target.value)} placeholder="选择时间段（不确定可选最后一项）">{ts.map(v=><option key={v[0]} value={v[1]}>{v[0]}</option>)}</Sl></div>
+    <label style={{color:'var(--dim)',fontSize:12,marginBottom:6,display:'block'}}>上线服务器</label>
+    <input className="inp" style={{marginBottom:20}} placeholder="出生城市" value={c} onChange={e=>sC(e.target.value)}/>
+    <button className="btn" onClick={()=>{
+      const hour=parseInt(t);
+      go({y:parseInt(y)||1990,m:parseInt(m)||6,d:parseInt(d)||15,hour:hour>=0?hour:12,timeKnown:t!==""&&hour>=0});
+    }}>读取我的开局配置</button>
+  </div>;
+}
+
+const LMSGS=["建立存档连接...","读取上线数据...","推演四柱参数...","解析模块分布...","匹配角色原型...","检测Loop信号...","生成报告..."];
+function Loading({go}){const [m,setM]=useState(0);useEffect(()=>{if(m<LMSGS.length-1){const id=setTimeout(()=>setM(m+1),600);return()=>clearTimeout(id);}const id=setTimeout(go,800);return()=>clearTimeout(id);},[m]);
+return <div className="sec" style={{minHeight:'100vh',display:'flex',flexDirection:'column',justifyContent:'center',alignItems:'center',textAlign:'center',borderBottom:'none'}}>
+  <div className="pulse" style={{color:'var(--gdim)',fontSize:24,letterSpacing:16}}>◆</div>
+  <div className="cz" style={{color:'var(--gold)',fontSize:13,margin:'24px 0 8px'}}>SCANNING</div>
+  <p className="pulse" style={{color:'var(--dim)',fontSize:14}}>{LMSGS[m]}</p>
+  <div className="bar-t" style={{maxWidth:200,marginTop:20}}><div className="bar-f" style={{width:`${((m+1)/LMSGS.length)*100}%`,background:'var(--gdim)'}}/></div>
+</div>;}
+
+function Result({answers,birth}){
+  const [unlocked,setUnlocked]=useState(REVIEW_MODE);
+  const [mbti,setMbti]=useState(null);
+  const [code,setCode]=useState("");
+  const [showSample,setShowSample]=useState(REVIEW_MODE);
+  const B=useMemo(()=>realBazi(birth.y,birth.m,birth.d,birth.hour,birth.timeKnown)||demoBazi(birth.y,birth.m,birth.d),[birth]);
+  const C=CLS[B.hiDim][B.variant];
+  const baseN=BASE_N[B.hiDim];
+  const fullName=`${B.prefix} · ${C.name}`;
+  const SE=SEASON[baseN];
+  const L=LOOP_MAP[B.loDim];
+  const mx=MBTI_X[baseN]||{};
+  const state=STATE_MAP[answers[5]]||"稳定运行";
+  const saveCode=`EO-${birth.y}${String(birth.m).padStart(2,'0')}${String(birth.d).padStart(2,'0')}-${birth.timeKnown?('H'+birth.hour):'H?'}-${B.prefix}·${C.name}-${state}-Loop${B.loDim}`;
+  // 共鸣回响：找答题与配置吻合的维度
+  const echoes=useMemo(()=>{
+    const out=[];
+    for(let i=0;i<5;i++){
+      const q=Q_DATA[i];const a=answers[i];const lv=B.lv[q.dim];
+      const lastIdx=q.opts.length-1;
+      if(lv==="H"&&a===lastIdx)out.push(ECHO[q.dim].H.replace("{opt}",q.opts[a]));
+      else if(lv==="L"&&a===0)out.push(ECHO[q.dim].L.replace("{opt}",q.opts[a]));
+      if(out.length>=2)break;
+    }
+    return out;
+  },[answers,B]);
+  const strength=useMemo(()=>65+Math.floor(Math.random()*25),[]);
+  const Lk=({t})=><div style={{display:'flex',alignItems:'center',gap:8,padding:'12px 0',color:'var(--gdim)',fontSize:13,borderBottom:'1px solid var(--bdr)'}}>🔒 <span>{t}</span><span style={{marginLeft:'auto',fontSize:11,color:'var(--dim)'}}>加微信解锁</span></div>;
+
+  return <div className="fade">
+    {B.demo&&<div className="demo-badge">演示模式 · 排盘引擎未加载</div>}
+    {/* ═══ 免费层 ═══ */}
+    <div className="sec" style={{paddingTop:44,paddingBottom:32,textAlign:'center'}}>
+      <div className="cz" style={{color:'var(--dim)',fontSize:10,letterSpacing:'.3em',marginBottom:12}}>开 局 配 置 报 告</div>
+      <div className="gm" style={{color:'var(--gdim)',letterSpacing:12,opacity:.6,margin:'10px 0'}}>— ◆ —</div>
+      <div className="cz" style={{color:'var(--gold)',fontSize:12,marginBottom:4}}>{B.prefix}</div>
+      <h1 style={{color:'var(--gb)',fontSize:32,fontWeight:900,margin:'2px 0 8px'}}>{C.name}</h1>
+      <div style={{display:'inline-block',border:'1px solid var(--gdim)',padding:'4px 14px',fontSize:12,marginBottom:16}}><span style={{color:'var(--dim)'}}>当前 · </span><span style={{color:'var(--gold)'}}>{state}</span></div>
+      <div className="gm" style={{fontSize:13,color:'var(--gdim)',marginBottom:20}}>— {C.tag} —</div>
+      <div style={{display:'flex',justifyContent:'center',gap:24,fontSize:12}}>
+        <div><span style={{color:'var(--dim)'}}>主模块 </span><span style={{color:'var(--gb)',fontWeight:700}}>{B.hiDim}</span></div>
+        <div style={{color:'var(--bdr)'}}>|</div>
+        <div><span style={{color:'var(--dim)'}}>Loop信号 </span><span style={{color:'var(--red)',fontWeight:700}}>×1</span></div>
+      </div>
+      <div style={{color:'var(--dim)',fontSize:10,marginTop:8}}>角色由你的上线数据推算 · 非答题决定</div>
+    </div>
+
+    <div className="sec" style={{paddingTop:20,paddingBottom:20}}>
+      <Radar pct={B.pct}/>
+      <p style={{color:'var(--dim)',fontSize:11,textAlign:'center',marginTop:10}}>你的五组模块出厂配置 · 最弱的那条线里，藏着你的Loop</p>
+    </div>
+
+    <div className="sec"><div className="cz" style={{color:'var(--gdim)',fontSize:10,marginBottom:12}}>IDENTITY</div><h3 style={{color:'var(--gold)',fontSize:16,marginBottom:14,fontWeight:700}}>角色描述</h3><p style={{fontSize:13.5,lineHeight:2}}>{C.desc}</p><p style={{fontSize:12,color:'var(--dim)',marginTop:14,fontStyle:'italic',lineHeight:1.9}}>{VARIANT_NOTE[C.name]}</p></div>
+
+    {echoes.length>0&&<div className="sec" style={{background:'rgba(201,169,110,.03)'}}>
+      <div className="cz" style={{color:'var(--gdim)',fontSize:10,marginBottom:14}}>ECHO</div>
+      <h3 style={{color:'var(--gold)',fontSize:16,marginBottom:14,fontWeight:700}}>共鸣回响</h3>
+      {echoes.map((e,i)=><p key={i} style={{fontSize:13.5,lineHeight:2,marginBottom:12,paddingLeft:14,borderLeft:'2px solid var(--gold)'}}>{e}</p>)}
+    </div>}
+
+    <div className="sec"><div className="cz" style={{color:'var(--gdim)',fontSize:10,marginBottom:14}}>ABILITIES</div>
+      <div style={{background:'var(--card)',border:'1px solid var(--gdim)',padding:18,marginBottom:18}}><div style={{color:'var(--gb)',fontSize:16,fontWeight:700,marginBottom:8}}>⚔ {C.ult.n}</div><p style={{fontSize:12.5,lineHeight:1.9}}>{C.ult.d}</p></div>
+      <div style={{color:'var(--dim)',fontSize:11,marginBottom:10}}>被动技能</div>
+      {C.pass.map((p,i)=><div key={i} style={{marginBottom:12,paddingLeft:12,borderLeft:'2px solid var(--bdr)'}}><div style={{color:'var(--gold)',fontSize:13,fontWeight:600}}>{p.n}</div><div style={{fontSize:12,opacity:.85}}>{p.d}</div></div>)}
+    </div>
+
+    <div className="sec"><div className="cz" style={{color:'var(--gdim)',fontSize:10,marginBottom:14}}>EQUIPMENT</div><h3 style={{color:'var(--gold)',fontSize:16,marginBottom:6,fontWeight:700}}>装备栏</h3>
+      <p style={{color:'var(--dim)',fontSize:11.5,marginBottom:12,lineHeight:1.8}}>以下环境对你的角色有天然增益——把自己放进这些场景，等于自带buff。</p>
+      {C.eq.map((e,i)=>{const parts=e.split(' · ');return <div key={i} style={{padding:'10px 0',borderBottom:i<C.eq.length-1?'1px solid var(--bdr)':'none'}}><div style={{fontSize:13.5,fontWeight:600,color:'var(--parch)'}}>{parts[0]}</div>{parts[1]&&<div style={{fontSize:12,color:'var(--dim)',marginTop:2,lineHeight:1.8}}>{parts[1]}</div>}</div>;})}</div>
+
+    <div className="sec"><div className="sc">
+      <div className="cz" style={{color:'var(--dim)',fontSize:9,letterSpacing:'.4em',marginBottom:8}}>EARTH ONLINE</div>
+      <div className="cz" style={{color:'var(--gold)',fontSize:11,marginBottom:2}}>{B.prefix}</div>
+      <div style={{color:'var(--gb)',fontSize:26,fontWeight:900,marginBottom:4}}>{C.name}</div>
+      <div className="gm" style={{fontSize:12,color:'var(--gdim)',marginBottom:6}}>{state}</div>
+      <div className="gm" style={{fontSize:11,color:'var(--gdim)',marginBottom:16}}>"{C.tag}"</div>
+      <div style={{display:'flex',justifyContent:'center',gap:18,fontSize:11}}>{DIM_ORDER.map(d=><div key={d}><div className="cz" style={{color:'var(--dim)',fontSize:8}}>{DIM_EN[d]}</div><div style={{color:'var(--gold)',fontWeight:700}}>{B.pct[d]}</div></div>)}</div>
+      <div style={{color:'var(--dim)',fontSize:9,marginTop:14}}>主模块 {B.hiDim} · Loop信号 ×1</div>
+    </div><div style={{textAlign:'center',marginTop:10,color:'var(--dim)',fontSize:11}}>↑ 可直接保存分享</div></div>
+
+    {/* ═══ 闸门 ═══ */}
+    {!unlocked&&<React.Fragment>
+      <div className="sec">
+        <div className="cz" style={{color:'var(--gdim)',fontSize:10,marginBottom:14}}>更多内容</div>
+        <Lk t="▼ Debuff · 你的持续性弱点"/>
+        <Lk t="📊 五维配置详解"/>
+        <Lk t="⚡ 2026赛季信号 · 你今年的版本主题"/>
+        <Lk t="🔑 Loop诊断 · 你最弱那条线的真相"/>
+        <Lk t="🌒 前置剧情信号"/>
+        <Lk t="MBTI × 地球Online 交叉解读"/>
+      </div>
+      <div className="sec" style={{textAlign:'center',paddingTop:32,paddingBottom:36}}>
+        <div className="cz" style={{color:'var(--gdim)',fontSize:10,letterSpacing:'.3em',marginBottom:14}}>CONTINUE</div>
+        <h3 style={{color:'var(--gold)',fontSize:17,fontWeight:700,marginBottom:6}}>加微信 · 查看更多</h3>
+        <p style={{color:'var(--dim)',fontSize:12,marginBottom:16}}>更深的解读和一对一通道，在微信里展开</p>
+        <img src="qrcode.png" alt="（将引路员微信二维码命名为 qrcode.png 上传到仓库后，此处显示）" style={{width:160,height:160,border:'1px solid var(--gdim)',objectFit:'cover',background:'#16120d',padding:4,color:'var(--dim)',fontSize:10}}/>
+        <p style={{color:'var(--dim)',fontSize:12,margin:'16px 0 6px'}}>① 扫码添加引路员　② 发送你的存档码：</p>
+        <div className="cz" style={{display:'inline-block',border:'1px dashed var(--gold)',padding:'10px 16px',color:'var(--gb)',fontSize:12,margin:'6px 0 16px',userSelect:'all',letterSpacing:'.05em',wordBreak:'break-all',maxWidth:'90%'}}>{saveCode}</div>
+        <p style={{color:'var(--dim)',fontSize:12,marginBottom:10}}>③ 输入引路员回复的通行暗号：</p>
+        <div style={{display:'flex',gap:8,maxWidth:300,margin:'0 auto'}}>
+          <input className="inp" placeholder="通行暗号" value={code} onChange={e=>setCode(e.target.value)} style={{textAlign:'center'}}/>
+          <button className="btn" style={{width:'auto',padding:'12px 20px'}} onClick={()=>{if(code.trim()===UNLOCK_CODE)setUnlocked(true);else alert('暗号不正确，请向引路员确认');}}>进入</button>
+        </div>
+      </div>
+    </React.Fragment>}
+
+    {/* ═══ 解锁层 ═══ */}
+    {unlocked&&<div className="fade">
+      <div className="sec"><div className="cz" style={{color:'var(--red)',fontSize:10,marginBottom:14}}>DEBUFF</div>{C.db.map((d,i)=><div key={i} style={{marginBottom:12,padding:16,background:'rgba(163,85,58,.06)',border:'1px solid rgba(163,85,58,.2)'}}><div style={{color:'var(--red)',fontSize:14,fontWeight:600,marginBottom:4}}>▼ {d.n}</div><div style={{fontSize:12.5,lineHeight:1.8}}>{d.d}</div></div>)}</div>
+
+      <div className="sec">
+        <div className="cz" style={{color:'var(--gdim)',fontSize:10,marginBottom:14}}>DIMENSIONS</div>
+        <h3 style={{color:'var(--gold)',fontSize:16,marginBottom:18,fontWeight:700}}>五维配置详解</h3>
+        {DIM_ORDER.map(d=><div key={d} style={{marginBottom:18}}>
+          <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+            <div style={{display:'flex',alignItems:'center',gap:8}}><span className="cz" style={{color:'var(--dim)',fontSize:9}}>{DIM_EN[d]}</span><span style={{fontSize:13,fontWeight:600}}>{d}</span></div>
+            <div style={{display:'flex',alignItems:'center',gap:6}}><span className={"lv lv-"+B.lv[d]}>{B.lv[d]}</span><span style={{color:'var(--dim)',fontSize:11}}>{B.pct[d]}</span></div>
+          </div>
+          <div className="bar-t"><div className="bar-f" style={{width:B.pct[d]+"%",background:B.lv[d]==='H'?'var(--gold)':B.lv[d]==='M'?'var(--gdim)':'var(--red)'}}/></div>
+          <div style={{color:'var(--dim)',fontSize:11.5,marginTop:5,lineHeight:1.8}}>{DIM_DETAIL[d][B.lv[d]]}</div>
+        </div>)}
+        <p style={{color:'var(--dim)',fontSize:10,marginTop:4}}>注：以上为出厂配置读数，由上线数据推算，非答题得分。</p>
+      </div>
+
+      <div className="sec" style={{background:'rgba(201,169,110,.03)'}}>
+        <div className="cz" style={{color:'var(--gdim)',fontSize:10,marginBottom:14}}>SEASON 2026</div>
+        <h3 style={{color:'var(--gold)',fontSize:16,marginBottom:6,fontWeight:700}}>本赛季信号</h3>
+        <div style={{display:'inline-block',border:'1px solid var(--gold)',padding:'6px 18px',margin:'8px 0 16px'}}><span style={{color:'var(--dim)',fontSize:11}}>版本主题 · </span><span style={{color:'var(--gb)',fontSize:16,fontWeight:700}}>{SE.theme}</span></div>
+        <p style={{fontSize:13.5,lineHeight:2,marginBottom:12}}>{SE.s1}</p>
+        <p style={{fontSize:13.5,lineHeight:2}}>{SE.s2}<span style={{color:'var(--dim)'}}> ▒▒▒▒▒▒……</span></p>
+        
+      </div>
+
+      <div className="sec" style={{background:'rgba(201,169,110,.04)'}}>
+        <div className="cz" style={{color:'var(--gdim)',fontSize:10,marginBottom:14}}>LOOP</div>
+        <h3 style={{color:'var(--gold)',fontSize:17,marginBottom:16,fontWeight:700}}>Loop 诊断</h3>
+        <p style={{fontSize:14,lineHeight:2,marginBottom:16}}>在你的五组模块里，<span style={{color:'var(--gb)'}}>{B.loDim}</span>是配置最弱的一条线——系统在这里检测到一组循环信号。</p>
+        <div style={{padding:18,border:'1px solid var(--gdim)',background:'rgba(0,0,0,.15)',marginBottom:16}}>
+          <div style={{color:'var(--gb)',fontSize:16,fontWeight:700,marginBottom:8}}>{L.name}</div>
+          <p style={{fontSize:13,lineHeight:2,marginBottom:12}}>{L.desc}</p>
+          <div className="cz" style={{fontSize:12,color:'var(--gold)',padding:'8px 12px',background:'rgba(0,0,0,.3)'}}>Loop: {L.code} · ██████░░░ {strength}%</div>
+        </div>
+        <p style={{color:'var(--dim)',fontSize:12.5,lineHeight:1.9}}>打个比方：这份扫描像手机的耗电检测——能告诉你后台有个程序在持续耗电，但看不到它是哪天装上的、因为什么装上的。</p>
+      </div>
+
+      <div className="sec">
+        <div className="cz" style={{color:'var(--gdim)',fontSize:10,marginBottom:14}}>PREQUEL</div>
+        <h3 style={{color:'var(--gold)',fontSize:16,marginBottom:14,fontWeight:700}}>前置剧情信号</h3>
+        <p style={{fontSize:13,lineHeight:2,marginBottom:12}}>有些模式不是这辈子学来的——没人教过你，但你从记事起就会莫名怕某些东西、执着某些东西，像出厂就预装在账号里的程序。地球Online里把这一层叫<span style={{color:'var(--gold)'}}>前置剧情</span>：你这局开始之前的存档记录。</p>
+        {birth.timeKnown?
+          <div style={{padding:'14px 16px',border:'1px dashed var(--gdim)',fontSize:12.5,lineHeight:2}}>本次扫描在你的配置中检测到这一层的遗留信号：一个明确的执念方向，和一段等着被卸载的旧代码。</div>
+          :<div style={{padding:'14px 16px',border:'1px dashed var(--red)',fontSize:12.5,lineHeight:2}}><span style={{color:'var(--red)'}}>⚠ 信号不完整</span> —— 读取这一层需要精确的出生时间。如果能从家人那里确认，这一层就能打开。</div>}
+      </div>
+
+      <div className="sec"><div className="cz" style={{color:'var(--gdim)',fontSize:10,marginBottom:14}}>CROSS ANALYSIS</div><h3 style={{color:'var(--gold)',fontSize:16,marginBottom:6,fontWeight:700}}>MBTI × {C.name}</h3><div style={{color:'var(--dim)',fontSize:11,marginBottom:14}}>选择你的 MBTI 类型</div>
+        <div className="mg">{MBTI_TYPES.map(t=><button key={t} className={"mb "+(mbti===t?"act":"")} onClick={()=>setMbti(t)}>{t}</button>)}</div>
+        {mbti&&mx[mbti]&&(()=>{const t=mx[mbti].split('——');const title=t[0];const body=t.slice(1).join('——');let h=0;for(const ch of mbti+C.name)h+=ch.charCodeAt(0);const st=3+(h%3);return <div className="fade" style={{marginTop:18}}>
+          <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',marginBottom:4}}><span style={{color:'var(--dim)',fontSize:12}}>{mbti} × {C.name}</span><span style={{color:'var(--gold)',fontSize:14,letterSpacing:2}}>{'★'.repeat(st)+'☆'.repeat(5-st)}</span></div>
+          <div style={{color:'var(--gb)',fontSize:18,fontWeight:900,marginBottom:10}}>{title}</div>
+          <p style={{fontSize:13,lineHeight:2}}>{body}</p>
+        </div>;})()}
+      </div>
+
+      <div className="sec" style={{textAlign:'center'}}>
+        <div className="gm" style={{color:'var(--gdim)',letterSpacing:12,opacity:.6}}>— ◆ —</div>
+        <h3 style={{color:'var(--gb)',fontSize:18,fontWeight:700,margin:'16px 0 10px'}}>深度配置报告</h3>
+        <p style={{fontSize:13.5,lineHeight:2,maxWidth:380,margin:'0 auto 20px',textAlign:'left'}}>这份免费报告回答了「你是谁」。深度报告回答的是三个更值钱的问题：<span style={{color:'var(--gb)'}}>你正走到哪一步、什么时候该出手、那个Loop到底从哪来。</span></p>
+        <div style={{textAlign:'left',maxWidth:380,margin:'0 auto 18px',fontSize:12.5,lineHeight:2}}>
+          <p style={{marginBottom:10}}><span style={{color:'var(--gold)'}}>◆ 十年版本图谱</span> — 你正处在大版本的第几年、转折点落在哪一年。提前知道和事后才懂，中间差的可能就是这十年。</p>
+          <p style={{marginBottom:10}}><span style={{color:'var(--gold)'}}>◆ 2026赛季全维度展开</span> — 事业的窗口期、关系的剧情点、身体的损耗位，精确到值得记进日历。</p>
+          <p style={{marginBottom:10}}><span style={{color:'var(--gold)'}}>◆ 前置剧情完整解析</span> — 那个比你还老的执念：从哪来、抓着什么、怎么放。</p>
+          <p style={{marginBottom:10}}><span style={{color:'var(--gold)'}}>◆ Loop溯源路径</span> — 不只告诉你loop在哪，告诉你它的安装时间和卸载顺序。</p>
+          <p style={{marginBottom:10}}><span style={{color:'var(--gold)'}}>◆ 系统补丁建议</span> — 不是「多穿红色」，是具体到环境、作息、方位的可执行参数。</p>
+          <p style={{marginBottom:10}}><span style={{color:'var(--gold)'}}>◆ 可选装备清单</span> — 按你的配置匹配的实体装备，每一件带适配理由。</p>
+          <p style={{marginBottom:0}}><span style={{color:'var(--gold)'}}>◆ 下一版本预告</span> — 这个版本结束之后，系统准备把你推向哪。</p>
+        </div>
+        <p style={{color:'var(--dim)',fontSize:12,marginBottom:18}}>每一份由AI按你的存档码单独推演，没有两份相同 · PDF交付 · 引路员私发</p>
+        <button className="btn" style={{maxWidth:300,margin:'0 auto'}} onClick={()=>{if(REVIEW_MODE)setShowSample(s=>!s);else alert('回到微信，向引路员发送「深度报告」即可预约');}}>{REVIEW_MODE?(showSample?'收起样例预览 ↑':'在微信里发送「深度报告」预约（点击看样例）'):'在微信里发送「深度报告」预约'}</button>
+        {showSample&&(()=>{
+          const GEM={金:["白水晶","聚焦与澄清——精准系的雷达需要一块不带杂讯的镜片"],木:["绿幽灵","生长与积聚——生长系的根须需要一块记得住方向的土壤"],水:["海蓝宝","流动与定锚——隐流系的水需要一个不冻结它的容器"],火:["石榴石","燃烧与续航——爆燃系的火需要一块存得住热量的炉膛"],土:["黄水晶","沉稳与流通——磐固系的土需要一条让资源动起来的渠"]}[B.element]||["月光石","通用适配"];
+          const styH={color:'var(--gold)',fontSize:15,fontWeight:700,margin:'20px 0 8px'};
+          const styP={fontSize:12.5,lineHeight:2.1,marginBottom:8};
+          const styS={color:'var(--gb)'};
+          return <div className="fade" style={{textAlign:'left',marginTop:24,padding:'22px 20px',border:'1px solid var(--gdim)',background:'rgba(0,0,0,.2)'}}>
+          <p style={{color:'var(--red)',fontSize:10,letterSpacing:'.1em',marginBottom:16,lineHeight:1.8}}>▲ 审阅模式 · 完整样例。正式版由AI按用户存档码逐份推演生成，以下展示成品的完整结构与文风（数据为示意）。</p>
+
+          <h4 style={styH}>一 · 十年版本图谱</h4>
+          <p style={styP}>你当前运行在一个以「{SE.theme}」为主题的大版本第6年——已过中点，进入这个版本真正兑现的下半场。这个版本从2020年前后启动，系统在前半段反复给你安排同一类事件：搭好的东西被推翻、准备好的窗口临时关闭。回头看你会发现那不是刁难，是系统在反复测试你的一个参数：<span style={styS}>没有外部确认的时候，你还动不动。</span></p>
+          <p style={styP}>按推演，这个版本的关键转折点落在<span style={styS}>2027年春夏之交</span>——在那之前完成的积累会在那之后集中结算，在那之前回避的问题也一样。下一个大版本将于2030年前后启动，主题会从「{SE.theme}」切换到「兑现」，届时你现在觉得「还早」的事情会突然变成「必须现在」。</p>
+
+          <h4 style={styH}>二 · 2026赛季全维度展开</h4>
+          <p style={styP}><span style={styS}>▸ 事业位：</span>窗口期集中在4月与9-10月两段。4月的机会来自旧关系的回流——一个两年以上没联系的人会带着一个具体的合作出现；9-10月的机会需要你主动出牌，特征是「规模看起来小于你的预期，但通向的房间大于你的想象」。6-7月是低信号期，适合建设不适合出击。</p>
+          <p style={styP}><span style={styS}>▸ 关系位：</span>本赛季的关系剧情不在「遇到谁」，在「重新看见谁」——一段已存在的关系会因为一次冲突进入重估。系统提示：这次冲突是升级补丁不是故障，压下去它明年换个更贵的方式回来。</p>
+          <p style={styP}><span style={styS}>▸ 角色耐久：</span>损耗集中在秋季，位置在睡眠与颈肩。不是大问题，是持续的低度透支——这类损耗的特点是每天都「还行」，累计三个月就「不行」。9月起把恢复排进日程，别等信号变红。</p>
+
+          <h4 style={styH}>三 · 前置剧情完整解析</h4>
+          <p style={styP}>你的存档里有一个明确的执念方向：<span style={styS}>「必须靠自己挣来，别人给的不算数」。</span>它让你在这一局获得了超额的独立性，也让你反复推开本可以接住你的手。这段代码的另一面是一份旧恐惧——欠了就要还，而你上一段剧情里「还」的代价太大。</p>
+          <p style={styP}>需要卸载的不是独立本身，是它的强制性。判断标准很简单：当「自己来」是选择时它是力量，当「自己来」是唯一选项时它是牢笼。这个版本系统会反复给你送来「不得不接受帮助」的场景——那不是削弱你，是在给这段旧代码做减敏。</p>
+
+          <h4 style={styH}>四 · Loop溯源路径</h4>
+          <p style={styP}>你的「{L.name}」有清晰的安装痕迹：初次写入在<span style={styS}>7-9岁窗口期</span>，触发事件的特征是「表达了真实需求，得到的回应让你确认了『不该开口』」。二次加固在青春期后段，从此它由事件升级为默认设置。</p>
+          <p style={styP}>卸载顺序（倒序进行）：先解除它在当下的自动触发（察觉即中断，约6-8周），再回访加固事件改写其结论，最后处理初始写入点——最后这一步在意识层做不动，需要进到存档层操作，这也是深度阅读真正的工作区。</p>
+
+          <h4 style={styH}>五 · 系统补丁建议</h4>
+          <p style={styP}>你的{B.element}属性资源当前低位运行。三个可执行参数：<span style={styS}>① 环境</span>——工作视野内增加{B.element==='火'?'暖色调与光源，背光而坐改为面光':B.element==='水'?'流动元素（鱼缸/水景/蓝色系），远离干燥高温位':B.element==='木'?'活体绿植（非塑料），临窗东向为佳':B.element==='金'?'金属质感与留白，清理杂物提高秩序度':'陶土/石材质感与矮重家具，降低漂浮感'}；<span style={styS}>② 作息</span>——你的高效时段在{B.element==='火'?'上午9-13点':B.element==='水'?'夜间21点后':B.element==='木'?'清晨5-9点':B.element==='金'?'下午15-19点':'午后13-15点'}，把最重要的事排进去，垃圾时间处理杂事；<span style={styS}>③ 方位</span>——长期驻留空间以{B.element==='火'?'南':B.element==='水'?'北':B.element==='木'?'东':B.element==='金'?'西':'中/西南'}向为增益位。不是玄学仪式，是把环境变量调到和你配置顺手的档位。</p>
+
+          <h4 style={styH}>六 · 可选装备清单</h4>
+          <p style={styP}><span style={styS}>◆ 主装备 · {GEM[0]}</span>（{B.prefix}系适配）— {GEM[1]}。佩戴位：左手腕。选购要点：天然裸石优于繁复镶嵌，附鉴定证书。</p>
+          <p style={styP}><span style={styS}>◆ 副装备 · 黑曜石</span> — 针对「{L.name}」的补位配置：它不补你的短板，它挡住消耗你短板的东西。佩戴位：右手腕或随身。</p>
+          <p style={{...styP,color:'var(--dim)',fontSize:11.5}}>装备为可选项，不购买不影响报告其他部分的执行。如需引路员代寻（附证书），微信内说明即可。</p>
+
+          <h4 style={styH}>七 · 下一版本预告</h4>
+          <p style={styP}>2030年前后，你将进入下一个大版本。它的主题词是<span style={styS}>「兑现」</span>——这个版本里你搭的所有东西，无论好坏，都会在下个版本收到账单或分红。这也是为什么现在这三年的每一个选择，权重都比你感觉到的更大。</p>
+          <p style={{...styP,color:'var(--dim)',marginTop:14,borderTop:'1px dashed var(--bdr)',paddingTop:12}}>——报告完。你的存档还在写，这份只是当前进度的读取。</p>
+        </div>;})()}
+        <div style={{color:'var(--dim)',fontSize:10,marginTop:24,lineHeight:2,maxWidth:340,marginLeft:'auto',marginRight:'auto'}}>本报告仅供娱乐与自我探索。你可以笑可以转发但别太当真——你的人生不由任何系统定义。</div>
+        <div className="cz" style={{color:'var(--dim)',fontSize:9,marginTop:16}}>EARTH ONLINE · v6.0</div>
+      </div>
+    </div>}
+  </div>;
+}
+
+function App(){
+  const [stage,setStage]=useState("title");
+  const [ans,setAns]=useState([]);
+  const [birth,setBirth]=useState({y:1990,m:6,d:15,hour:12,timeKnown:true});
+  return <div className="eo">
+    {stage==="title"&&<Title go={()=>setStage("quiz")}/>}
+    {stage==="quiz"&&<Quiz onDone={a=>{setAns(a);setStage("birth");}}/>}
+    {stage==="birth"&&<Birth go={b=>{setBirth(b);setStage("load");}}/>}
+    {stage==="load"&&<Loading go={()=>setStage("result")}/>}
+    {stage==="result"&&<Result answers={ans} birth={birth}/>}
+  </div>;
+}
+ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
+</script>
+</body>
+</html>

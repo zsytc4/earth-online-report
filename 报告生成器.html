@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>地球Online · 深度报告生成器（引路员本地工具）</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&family=Noto+Serif+SC:wght@400;600;700;900&display=swap');
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#0d0b07;--card:#16120d;--gold:#c9a96e;--gdim:#8b7355;--gb:#e8c36a;--parch:#d4c5a9;--dim:#6a5f4f;--bdr:#2e261c;--red:#a3553a}
+body{background:#1a1814;font-family:'Noto Serif SC',serif;color:var(--parch)}
+.cz{font-family:'Cinzel',serif;letter-spacing:.15em}
+
+/* ── 左侧操作区（打印时隐藏）── */
+.panel{position:fixed;left:0;top:0;bottom:0;width:380px;background:#211d17;border-right:1px solid var(--bdr);padding:24px;overflow-y:auto}
+.panel h2{color:var(--gold);font-size:16px;margin-bottom:4px}
+.panel .tip{color:var(--dim);font-size:11px;line-height:1.8;margin-bottom:16px}
+.panel label{color:var(--dim);font-size:12px;display:block;margin:12px 0 4px}
+.panel input,.panel textarea{width:100%;background:var(--card);border:1px solid var(--bdr);color:var(--parch);padding:10px 12px;font-family:'Noto Serif SC',serif;font-size:13px;border-radius:0}
+.panel input:focus,.panel textarea:focus{outline:0;border-color:var(--gdim)}
+.panel textarea{height:320px;resize:vertical;line-height:1.7}
+.panel button{width:100%;margin-top:14px;background:var(--gold);border:1px solid var(--gold);color:#16120d;padding:12px;cursor:pointer;font-family:'Noto Serif SC',serif;font-size:14px;font-weight:700;letter-spacing:.1em}
+.panel button:hover{background:var(--gb)}
+.panel button.ghost{background:transparent;color:var(--gold);font-weight:400}
+.panel button.ghost:hover{background:rgba(201,169,110,.1)}
+.howto{margin-top:18px;padding:12px;border:1px dashed var(--gdim);font-size:11px;color:var(--dim);line-height:1.9}
+
+/* ── 右侧报告预览区 ── */
+.paper-wrap{margin-left:380px;padding:32px;display:flex;justify-content:center}
+.paper{width:100%;max-width:680px;background:var(--bg);min-height:90vh;box-shadow:0 0 40px rgba(0,0,0,.5)}
+
+/* 报告内容样式 */
+.cover{padding:90px 48px 70px;text-align:center;border-bottom:1px solid var(--bdr);position:relative}
+.cover::before{content:'';position:absolute;top:16px;left:16px;width:44px;height:44px;border:1px solid var(--gdim);border-width:1px 0 0 1px}
+.cover::after{content:'';position:absolute;bottom:16px;right:16px;width:44px;height:44px;border:1px solid var(--gdim);border-width:0 1px 1px 0}
+.cover .brand{color:var(--dim);font-size:11px;letter-spacing:.5em;margin-bottom:24px}
+.cover .orn{color:var(--gdim);letter-spacing:14px;opacity:.6;margin:14px 0;font-size:14px}
+.cover .prefix{color:var(--gold);font-size:14px;letter-spacing:.2em;margin-bottom:6px}
+.cover h1{color:var(--gb);font-size:42px;font-weight:900;letter-spacing:.08em;margin:4px 0 16px}
+.cover .sub{color:var(--gdim);font-size:14px;font-style:italic}
+.cover .meta{margin-top:36px;color:var(--dim);font-size:11px;letter-spacing:.15em;line-height:2.2}
+.body{padding:40px 48px 60px}
+.body h2{color:var(--gold);font-size:19px;font-weight:700;margin:38px 0 6px;padding-bottom:8px;border-bottom:1px solid var(--bdr);page-break-after:avoid}
+.body h2 .en{display:block;font-family:'Cinzel',serif;font-size:9px;color:var(--gdim);letter-spacing:.3em;margin-bottom:4px;font-weight:400}
+.body h3{color:var(--gb);font-size:15px;font-weight:700;margin:24px 0 8px;page-break-after:avoid}
+.body p{font-size:13.5px;line-height:2.1;margin-bottom:14px;color:var(--parch)}
+.body .note{padding:14px 18px;border-left:2px solid var(--gold);background:rgba(201,169,110,.05);font-size:12.5px;color:var(--gdim);font-style:italic;line-height:1.9;margin:18px 0}
+.body hr{border:0;border-top:1px solid var(--bdr);margin:30px auto;width:40%}
+.body ul{margin:0 0 14px 0;padding-left:0;list-style:none}
+.body li{font-size:13.5px;line-height:2;padding-left:18px;position:relative;margin-bottom:6px}
+.body li::before{content:'◆';position:absolute;left:0;color:var(--gold);font-size:9px;top:7px}
+.footer{padding:36px 48px 50px;text-align:center;border-top:1px solid var(--bdr)}
+.footer .orn{color:var(--gdim);letter-spacing:14px;opacity:.6;margin-bottom:14px}
+.footer .disc{color:var(--dim);font-size:10px;line-height:2;max-width:420px;margin:0 auto}
+.footer .ver{color:var(--dim);font-size:9px;letter-spacing:.3em;margin-top:18px;font-family:'Cinzel',serif}
+
+/* ── 打印 ── */
+@media print{
+  .panel{display:none}
+  .paper-wrap{margin:0;padding:0}
+  .paper{box-shadow:none;max-width:100%}
+  body{background:var(--bg)}
+  @page{margin:0;size:A4}
+}
+</style>
+</head>
+<body>
+
+<div class="panel">
+  <h2>深度报告生成器</h2>
+  <p class="tip">引路员本地工具 · 双击打开即用，无需联网部署</p>
+
+  <label>玩家角色全称（如：爆燃 · 破阵法师）</label>
+  <input id="charName" placeholder="爆燃 · 破阵法师"/>
+
+  <label>词缀（小字，如：爆燃）</label>
+  <input id="prefix" placeholder="爆燃"/>
+
+  <label>玩家昵称 / 存档码（封面备注，可留空）</label>
+  <input id="player" placeholder="EO-19900615-H14-…"/>
+
+  <label>报告正文（粘贴AI生成的文本）</label>
+  <textarea id="src" placeholder="支持的格式标记：&#10;# 大标题（如 # 十年版本图谱）&#10;## 小标题&#10;> 系统备注或引述&#10;- 列表项&#10;--- 分隔线&#10;其余每行为普通段落"></textarea>
+
+  <button onclick="render()">生成预览 →</button>
+  <button class="ghost" onclick="window.print()">打印 / 另存为 PDF</button>
+
+  <div class="howto">
+    <b style="color:var(--gold)">使用流程：</b><br/>
+    1. 把用户的存档码 + 深度报告提示词发给AI，生成报告全文<br/>
+    2. 把全文粘贴到上方文本框，填好角色名<br/>
+    3. 点「生成预览」检查右侧效果<br/>
+    4. 点「打印/另存为PDF」——在打印对话框中：目标选「另存为PDF」，并勾选「背景图形」（否则黑底金字会丢失）<br/>
+    5. 微信发PDF给用户，附一句基于他Loop标签的开场观察
+  </div>
+</div>
+
+<div class="paper-wrap">
+  <div class="paper" id="paper">
+    <div class="cover">
+      <div class="brand cz">E A R T H　O N L I N E</div>
+      <div class="orn">— ◆ —</div>
+      <div class="prefix cz" id="pvPrefix">词缀</div>
+      <h1 id="pvName">角色名</h1>
+      <div class="sub">深度配置报告 · DEEP CONFIGURATION REPORT</div>
+      <div class="orn">— ◆ —</div>
+      <div class="meta" id="pvMeta">存档编号 ·<br/>生成日期 ·</div>
+    </div>
+    <div class="body" id="pvBody">
+      <p style="color:var(--dim);text-align:center;padding:60px 0">← 在左侧粘贴报告文本后点「生成预览」</p>
+    </div>
+    <div class="footer">
+      <div class="orn">— ◆ —</div>
+      <p class="disc">本报告基于玩家上线数据专属生成，仅供自我探索参考。你可以认真读，也可以笑着读，但请记住——你的人生不由任何系统定义，包括这一份。</p>
+      <div class="ver cz">EARTH ONLINE · DEEP REPORT · v1.0</div>
+    </div>
+  </div>
+</div>
+
+<script>
+function esc(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function render(){
+  var name=document.getElementById('charName').value||'未命名角色';
+  var prefix=document.getElementById('prefix').value||'';
+  var player=document.getElementById('player').value||'';
+  document.getElementById('pvName').textContent=name.replace(/^.*·\s*/,'')||name;
+  document.getElementById('pvPrefix').textContent=prefix||(name.indexOf('·')>=0?name.split('·')[0].trim():'');
+  var today=new Date();
+  var dateStr=today.getFullYear()+'.'+String(today.getMonth()+1).padStart(2,'0')+'.'+String(today.getDate()).padStart(2,'0');
+  document.getElementById('pvMeta').innerHTML=(player?('存档编号 · '+esc(player)+'<br/>'):'')+'生成日期 · '+dateStr;
+
+  var src=document.getElementById('src').value;
+  var lines=src.split('\n');
+  var html='';var inList=false;
+  function closeList(){if(inList){html+='</ul>';inList=false;}}
+  for(var i=0;i<lines.length;i++){
+    var L=lines[i].trim();
+    if(!L){closeList();continue;}
+    if(L.indexOf('## ')===0){closeList();html+='<h3>'+esc(L.slice(3))+'</h3>';}
+    else if(L.indexOf('# ')===0){closeList();html+='<h2><span class="en cz">SECTION</span>'+esc(L.slice(2))+'</h2>';}
+    else if(L==='---'){closeList();html+='<hr/>';}
+    else if(L.indexOf('> ')===0){closeList();html+='<div class="note">'+esc(L.slice(2))+'</div>';}
+    else if(L.indexOf('- ')===0||L.indexOf('◆ ')===0){if(!inList){html+='<ul>';inList=true;}html+='<li>'+esc(L.slice(2))+'</li>';}
+    else{closeList();html+='<p>'+esc(L)+'</p>';}
+  }
+  closeList();
+  document.getElementById('pvBody').innerHTML=html||'<p style="color:var(--dim)">（正文为空）</p>';
+}
+</script>
+</body>
+</html>
