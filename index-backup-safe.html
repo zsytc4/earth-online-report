@@ -345,98 +345,57 @@ function Result({answers,birth}){
   const [code,setCode]=useState("");
   const [showQR,setShowQR]=useState(false);
 
-  // ── 安全的计算逻辑 ──
-  const B=useMemo(()=>{
-    try{
-      return realBazi(birth.y,birth.m,birth.d,birth.hour,birth.timeKnown)||demoBazi(birth.y,birth.m,birth.d);
-    }catch(e){
-      console.error('八字计算出错:',e);
-      return demoBazi(birth.y,birth.m,birth.d);
-    }
-  },[birth]);
+  // ── 综合计算：答题70% + 八字20% ──
+  const B=useMemo(()=>realBazi(birth.y,birth.m,birth.d,birth.hour,birth.timeKnown)||demoBazi(birth.y,birth.m,birth.d),[birth]);
 
-  // 1. 答题得分（安全版本）
+  // 1. 答题得分
   const quizScores=useMemo(()=>{
-    try{
-      const scores={};
-      DIM_ORDER.forEach(d=>scores[d]=0);
-      const counts={};
-      DIM_ORDER.forEach(d=>counts[d]=0);
-
-      for(let i=0;i<Math.min(answers.length,Q_DATA.length);i++){
-        const a=answers[i];
-        const q=Q_DATA[i];
-        if(!q||!q.dim||!q.opts)continue;
-        const optsLen=q.opts.length;
-        if(optsLen<=1)continue;
-        const score=a*(100/(optsLen-1));
-        scores[q.dim]=(scores[q.dim]||0)+score;
-        counts[q.dim]=(counts[q.dim]||0)+1;
-      }
-
-      DIM_ORDER.forEach(d=>{
-        if(counts[d]>0)scores[d]=scores[d]/counts[d];
-        else scores[d]=50;
-      });
-
-      return scores;
-    }catch(e){
-      console.error('答题计算出错:',e);
-      const scores={};
-      DIM_ORDER.forEach(d=>scores[d]=50);
-      return scores;
-    }
+    const scores={};
+    DIM_ORDER.forEach(d=>scores[d]=0);
+    answers.forEach((a,i)=>{
+      const q=Q_DATA[i];
+      if(!q||!q.dim)return;
+      const score=a*(100/(q.opts.length-1)); // 归一化到0-100
+      scores[q.dim]+=score;
+    });
+    // 每个维度3题，平均分
+    DIM_ORDER.forEach(d=>{
+      const count=Q_DATA.filter(q=>q.dim===d).length;
+      if(count>0)scores[d]=scores[d]/count;
+    });
+    return scores;
   },[answers]);
 
-  // 2. 八字得分（安全版本）
+  // 2. 八字得分
   const baziScores=useMemo(()=>{
-    try{
-      const scores={};
-      if(!B||!B.sums){
-        DIM_ORDER.forEach(d=>scores[d]=50);
-        return scores;
-      }
-      const vals=DIM_ORDER.map(d=>B.sums[d]||0);
-      const maxS=Math.max(...vals,0.01);
-      DIM_ORDER.forEach(d=>{
-        scores[d]=((B.sums[d]||0)/maxS)*100;
-      });
-      return scores;
-    }catch(e){
-      console.error('八字得分计算出错:',e);
-      const scores={};
+    const scores={};
+    if(!B.sums){
       DIM_ORDER.forEach(d=>scores[d]=50);
       return scores;
     }
+    const maxS=Math.max(...DIM_ORDER.map(d=>B.sums[d]||0),0.01);
+    DIM_ORDER.forEach(d=>{
+      scores[d]=((B.sums[d]||0)/maxS)*100;
+    });
+    return scores;
   },[B]);
 
   // 3. 综合得分
   const finalScores=useMemo(()=>{
     const scores={};
     DIM_ORDER.forEach(d=>{
-      scores[d]=(quizScores[d]||50)*0.7+(baziScores[d]||50)*0.3;
+      scores[d]=quizScores[d]*0.7+(baziScores[d]||50)*0.2;
     });
     return scores;
   },[quizScores,baziScores]);
 
-  // 4. 确定主维度
-  const hiDim=useMemo(()=>{
-    let max=0,dim=DIM_ORDER[0];
-    DIM_ORDER.forEach(d=>{
-      if(finalScores[d]>max){max=finalScores[d];dim=d;}
-    });
-    return dim;
-  },[finalScores]);
+  // 4. 确定主维度和低维度
+  const hiDim=useMemo(()=>DIM_ORDER.reduce((a,b)=>finalScores[a]>=finalScores[b]?a:b),[finalScores]);
+  const loDim=useMemo(()=>DIM_ORDER.reduce((a,b)=>finalScores[a]<=finalScores[b]?a:b),[finalScores]);
 
-  const loDim=useMemo(()=>{
-    let min=999,dim=DIM_ORDER[0];
-    DIM_ORDER.forEach(d=>{
-      if(finalScores[d]<min){min=finalScores[d];dim=d;}
-    });
-    return dim;
-  },[finalScores]);
+  // 正偏：八字身强=偏，身弱=正
+  const variant=B.strong?"偏":"正";
 
-  const variant=(B&&B.strong)?"偏":"正";
   const C=CLS[hiDim][variant];
   const baseN=BASE_N[hiDim];
   const fullName=`${B.prefix} · ${C.name}`;
@@ -445,18 +404,16 @@ function Result({answers,birth}){
   const mx=MBTI_X[baseN]||{};
   const saveCode=`EO-${birth.y}${String(birth.m).padStart(2,'0')}${String(birth.d).padStart(2,'0')}-${birth.timeKnown?('H'+birth.hour):'H?'}-${fullName}-Loop${loDim}`;
 
-  // 雷达图百分比
+  // 重新计算雷达图和等级
   const pct=useMemo(()=>{
-    const vals=DIM_ORDER.map(d=>finalScores[d]||0);
-    const maxS=Math.max(...vals,0.01);
+    const maxS=Math.max(...DIM_ORDER.map(d=>finalScores[d]),0.01);
     const p={};
-    DIM_ORDER.forEach(d=>{p[d]=Math.round(28+((finalScores[d]||0)/maxS)*67);});
+    DIM_ORDER.forEach(d=>{p[d]=Math.round(28+(finalScores[d]/maxS)*67);});
     return p;
   },[finalScores]);
 
-  // 等级
   const lv=useMemo(()=>{
-    const sorted=[...DIM_ORDER].sort((a,b)=>(finalScores[b]||0)-(finalScores[a]||0));
+    const sorted=[...DIM_ORDER].sort((a,b)=>finalScores[b]-finalScores[a]);
     const l={};
     sorted.forEach((g,i)=>{l[g]=i<2?"H":i<3?"M":"L";});
     return l;
@@ -465,23 +422,18 @@ function Result({answers,birth}){
   // 共鸣回响
   const echoes=useMemo(()=>{
     const out=[];
-    try{
-      for(let i=0;i<Math.min(answers.length,Q_DATA.length);i++){
-        const a=answers[i];
-        const q=Q_DATA[i];
-        if(!q||!q.opts)continue;
-        const lastIdx=q.opts.length-1;
-        if(q.dim===hiDim&&a>=lastIdx-1){
-          out.push(`你在「${q.q.substring(0,12)}...」选了「${q.opts[a]}」——正好对应你的${hiDim}高配。`);
-        }
-        if(q.dim===loDim&&a<=1){
-          out.push(`你在「${q.q.substring(0,12)}...」选了「${q.opts[a]}」——正好对应你的${loDim}低配。`);
-        }
-        if(out.length>=2)break;
+    answers.forEach((a,i)=>{
+      const q=Q_DATA[i];
+      if(!q)return;
+      const lastIdx=q.opts.length-1;
+      if(q.dim===hiDim&&a>=lastIdx-1){
+        out.push(`你在「${q.q.substring(0,12)}...」选了「${q.opts[a]}」——正好对应你的${hiDim}高配。`);
       }
-    }catch(e){
-      console.error('共鸣计算出错:',e);
-    }
+      if(q.dim===loDim&&a<=1){
+        out.push(`你在「${q.q.substring(0,12)}...」选了「${q.opts[a]}」——正好对应你的${loDim}低配。`);
+      }
+      if(out.length>=2)return;
+    });
     return out.slice(0,2);
   },[answers,hiDim,loDim]);
 

@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8"/>
+<title>调试版</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
+<style>
+body{background:#0d0b07;color:#d4c5a9;padding:20px;font-family:sans-serif}
+button{background:#c9a96e;border:none;padding:10px 20px;color:#000;cursor:pointer;margin:5px}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const {useState} = React;
+
+const Q_DATA=[
+  {dim:"输出",q:"题目1",opts:["A","B","C","D","E"]},
+  {dim:"独立",q:"题目2",opts:["A","B","C","D","E"]},
+  {dim:"秩序",q:"题目3",opts:["A","B","C","D","E"]},
+];
+
+function Quiz({onDone}){
+  const [i,setI]=useState(0);
+  const [answers,setAnswers]=useState([]);
+
+  const pick=v=>{
+    console.log('选择了:', v, '当前题:', i);
+    const n=[...answers,v];
+    console.log('答案数组:', n);
+    if(i+1<Q_DATA.length){
+      setAnswers(n);
+      setI(i+1);
+    }else{
+      console.log('答题完成，调用onDone');
+      onDone(n);
+    }
+  };
+
+  return <div>
+    <h2>第{i+1}题 / 共{Q_DATA.length}题</h2>
+    <p>{Q_DATA[i].q}</p>
+    {Q_DATA[i].opts.map((o,idx)=><button key={idx} onClick={()=>pick(idx)}>{o}</button>)}
+  </div>;
+}
+
+function App(){
+  const [stage,setStage]=useState("quiz");
+  const [ans,setAns]=useState([]);
+
+  console.log('当前阶段:', stage);
+
+  if(stage==="quiz"){
+    return <Quiz onDone={a=>{
+      console.log('收到答案:', a);
+      setAns(a);
+      setStage("result");
+    }}/>;
+  }
+
+  return <div>
+    <h1>完成！</h1>
+    <p>你的答案: {JSON.stringify(ans)}</p>
+  </div>;
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
+</script>
+</body>
+</html>
